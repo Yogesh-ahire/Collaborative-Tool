@@ -6,11 +6,13 @@ import TaskList from '@tiptap/extension-task-list';
 import Image from '@tiptap/extension-image';
 import ImageResize from "tiptap-extension-resize-image";
 import Table from '@tiptap/extension-table';
+import FontFamily from '@tiptap/extension-font-family';
+import TextStyle  from '@tiptap/extension-text-style';
 import TableCell from '@tiptap/extension-table-cell';
 import TableHeader from '@tiptap/extension-table-header';
 import TableRow from '@tiptap/extension-table-row';
 import{ useEditor, EditorContent } from '@tiptap/react';
-
+import { Underline } from '@tiptap/extension-underline';
 import { useEditorStore } from '@/store/use-editor-store';
 
 export const Editor = () => {
@@ -51,6 +53,9 @@ export const Editor = () => {
         },
         extensions: [
             StarterKit,
+            FontFamily,
+            TextStyle,
+            Underline,
             Image,
             ImageResize,
             Table,
