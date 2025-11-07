@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="DocFusion document icon">
+  <defs>
+    <linearGradient id="grad" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#3B82F6"/>
+      <stop offset="1" stop-color="#2563EB"/>
+    </linearGradient>
+    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000" flood-opacity="0.15"/>
+    </filter>
+  </defs>
+
+  <!-- main doc shape -->
+  <path d="M10 4 H40 L54 18 V56 C54 59 51 62 48 62 H10 C7 62 4 59 4 56 V10 C4 7 7 4 10 4 Z"
+        fill="url(#grad)" filter="url(#shadow)"/>
+
+  <!-- folded corner -->
+  <path d="M40 4 V18 H54 L40 4 Z" fill="#ffffff" opacity="0.25"/>
+
+  <!-- text lines -->
+  <g fill="#3b4a66" opacity="0.9">
+    <rect x="10" y="14" rx="1" width="28" height="3"/>
+    <rect x="10" y="20" rx="1" width="39" height="3"/>
+    <rect x="10" y="26" rx="1" width="28" height="3"/>
+    <rect x="10" y="32" rx="1" width="38" height="3"/>
+    <rect x="10" y="38" rx="1" width="38" height="3"/>
+    <rect x="10" y="44" rx="1" width="34" height="3"/>
+    <rect x="10" y="50" rx="1" width="38" height="3"/>
+    <rect x="10" y="56" rx="1" width="38" height="3"/>
+  </g>
+
+  <!-- avatars (bottom-right corner) -->
+  <g transform="translate(38,53)">
+    <!-- back avatar -->
+    <circle cx="-4" cy="0" r="4" fill="#FFD166" stroke="#E3B24A" stroke-width="0.6"/>
+    <!-- front avatar -->
+    <circle cx="4" cy="0" r="4.8" fill="#06D6A0" stroke="#03B684" stroke-width="0.6"/>
+    <!-- small connection ring -->
+    <path d="M-2 -3 C2 -6, 6 -3, 8 -1" fill="none" stroke="#fff" stroke-opacity="0.2" stroke-width="0.6" stroke-linecap="round"/>
+  </g>
+
+  <!-- realtime pulse (top-right corner) -->
+  <g transform="translate(38,23)">
+    <circle cx="0" cy="0" r="2" fill="#FF6B6B" />
+    <circle cx="0" cy="0" r="3.5" fill="none" stroke="#FF6B6B" stroke-opacity="0.28" stroke-width="0.6">
+      <animate attributeName="r" values="2;4;2" dur="1.6s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="1;0.15;1" dur="1.6s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <!-- subtle highlight -->
+ <path d="M10 10 C18 8, 28 8, 38 12" fill="none" stroke="#fff" stroke-opacity="0.06" stroke-width="3" stroke-linecap="round"/>
+
+</svg>
