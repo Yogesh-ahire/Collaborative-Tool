@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { UserButton } from "@clerk/nextjs";
 import { SearchInput } from "./search-input";
 
 export const Navbar = () => {
@@ -12,18 +13,18 @@ export const Navbar = () => {
         <Link href="/" prefetch={false}>
           <div className="flex items-center gap-2">
             <Image
-              src="/docfusion-logo.svg"
+              src="/DoczFlow-logo.svg"
               alt="Logo"
-              width={36}
-              height={36}
+              width={40}
+              height={40}
               priority
             />
-            <h3 className="text-xl">DocFusion</h3>
+            <h3 className="text-xl"> DoczFlow </h3>
           </div>
         </Link>
       </div>
       <SearchInput />
-      <div />
+      <UserButton />
     </nav>
   );
 };

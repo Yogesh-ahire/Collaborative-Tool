@@ -104,7 +104,7 @@ export const Navbar = () => {
         <nav className="flex items-center justify-between">
             <div className="flex gap-2 items-center">
                 <Link href="/">
-                    <Image src="/docfusion-logo.svg" alt="logo" width={36} height={36} />
+                    <Image src="/DoczFlow-logo.svg" alt="logo" width={36} height={36} />
                 </Link>
                 <div className="flex flex-col">
                     <DocumentInput />
