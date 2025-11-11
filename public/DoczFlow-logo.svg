@@ -1,41 +1,46 @@
-<?xml version="1.0" encoding="utf-8"?>
-<svg width="72" height="88" viewBox="0 0 88 88" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
-  <title id="title">FlowWrite Logo Icon</title>
-  <desc id="desc">Compact icon of FlowWrite with gradient paper and sync arrows.</desc>
-
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="72" height="80" viewBox="0 0 72 80" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="DoczFlow App Icon">
   <defs>
-    <linearGradient id="g1" x1="0" x2="1" y1="0" y2="1">
-      <stop offset="0" stop-color="#2F80ED"/>
-      <stop offset="1" stop-color="#06B6A4"/>
+    <!-- Gradient similar to intro logo -->
+    <linearGradient id="grad" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#3B82F6"/>
+      <stop offset="1" stop-color="#2563EB"/>
     </linearGradient>
-    <filter id="soft" x="-40%" y="-40%" width="180%" height="180%">
-      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#0B1726" flood-opacity="0.08"/>
+
+    <!-- Subtle drop shadow -->
+    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#000" flood-opacity="0.15"/>
     </filter>
   </defs>
 
-  <!-- Main icon -->
-  <g transform="translate(8,4)" filter="url(#soft)">
-    <!-- Paper -->
-    <rect x="0" y="0" width="72" height="80" rx="8" fill="url(#g1)"/>
-    <!-- Fold -->
-    <path d="M44 0 H72 V24 L44 0 Z" fill="#ffffff" opacity="0.12"/>
-    <!-- Lines -->
-    <g fill="#ffffff" opacity="0.9" transform="translate(10,14)">
-      <rect x="0" y="0" width="44" height="4" rx="2"/>
-      <rect x="0" y="12" width="34" height="4" rx="2"/>
-      <rect x="0" y="24" width="46" height="4" rx="2"/>
-    </g>
+  <!-- Main document shape -->
+  <path d="M8 4 H44 L64 20 V72 C64 75 61 78 58 78 H8 C5 78 2 75 2 72 V10 C2 7 5 4 8 4 Z"
+        fill="url(#grad)" filter="url(#shadow)"/>
 
-    <!-- Sync arrows -->
-    <g transform="translate(36,46)">
-      <circle r="26" fill="none" stroke="#ffffff" stroke-opacity="0.08" stroke-width="10"/>
-      <path d="M-6,-26 A26,26 0 0,1 22,-6" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-      <path d="M18,-10 L26,-6 L22,2" fill="#ffffff"/>
-      <path d="M6,26 A26,26 0 0,1 -22,6" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-      <path d="M-18,10 L-26,6 L-22,-2" fill="#ffffff"/>
-      <circle cx="-18" cy="-4" r="3.2" fill="#FFD166"/>
-      <circle cx="18" cy="6" r="3.6" fill="#06D6A0"/>
-      <circle cx="0" cy="14" r="3.2" fill="#FF6B6B"/>
-    </g>
+  <!-- Folded corner (lighter tone) -->
+  <path d="M44 4 V20 H64 L44 4 Z" fill="#ffffff" opacity="0.25"/>
+
+  <!-- Text lines (simplified for small sizes) -->
+  <g fill="#ffffff" opacity="0.9" transform="translate(10,20)">
+    <rect x="0" y="0" rx="1" width="36" height="3"/>
+    <rect x="0" y="8" rx="1" width="30" height="3"/>
+    <rect x="0" y="16" rx="1" width="38" height="3"/>
+    <rect x="0" y="24" rx="1" width="38" height="3"/>
+    <rect x="0" y="32" rx="1" width="38" height="3"/>
+    <rect x="0" y="40" rx="1" width="38" height="3"/>
   </g>
+
+  <!-- Collaboration dots (bottom-right corner) -->
+  <g transform="translate(46,60)">
+    <circle cx="-4" cy="0" r="3.5" fill="#FFD166" stroke="#E3B24A" stroke-width="0.5"/>
+    <circle cx="4" cy="0" r="4" fill="#06D6A0" stroke="#03B684" stroke-width="0.5"/>
+    <circle cx="0" cy="-5" r="3" fill="#FF6B6B"/>
+  </g>
+
+  <!-- Subtle pulse ring (realtime indicator) -->
+  <circle cx="54" cy="22" r="3" fill="#FF6B6B"/>
+  <circle cx="54" cy="22" r="4.8" fill="none" stroke="#FF6B6B" stroke-opacity="0.25" stroke-width="0.8">
+    <animate attributeName="r" values="3;5;3" dur="1.6s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="1;0.3;1" dur="1.6s" repeatCount="indefinite"/>
+  </circle>
 </svg>

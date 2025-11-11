@@ -1,7 +1,7 @@
 ```
 https://www.youtube.com/watch?v=gq2bbDmSokU&t=1088s
 ```
-completed till -- 6:19:00 
+completed till -- 6:57:00 
 
 
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app)

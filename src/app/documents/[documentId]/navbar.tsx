@@ -38,6 +38,7 @@ import {
 import { DocumentInput } from "./document-input";
 import { useState } from "react";
 import { useEditorStore } from "@/store/use-editor-store";
+import { OrganizationSwitcher, UserButton } from "@clerk/nextjs";
 
 
 export const Navbar = () => {
@@ -249,36 +250,16 @@ export const Navbar = () => {
                     </div>
                 </div>
             </div>
+            <div className="flex gap-3 items-center pl-6">
+        <OrganizationSwitcher 
+          afterCreateOrganizationUrl="/"
+          afterLeaveOrganizationUrl="/"
+          afterSelectOrganizationUrl="/"
+          afterSelectPersonalUrl="/"
+        />
+        <UserButton />
+      </div>
         </nav>
     );
 };
-
-
-
-
-
-{/* <MenubarTrigger className="text-sm font-normal py-0.5 px-[7px] rounded-sm hover:bg-muted h-auto">
-    Insert
-</MenubarTrigger>
-<MenubarContent>
-    <MenubarSub>
-        <MenubarSubTrigger>
-            Teble
-        </MenubarSubTrigger>
-        <MenubarSubContent>
-            <MenubarItem>
-                1 x 1
-            </MenubarItem>
-            <MenubarItem>
-                2 x 2
-            </MenubarItem>
-            <MenubarItem>
-                3 x 3
-            </MenubarItem>
-            <MenubarItem>
-                4 x 4
-            </MenubarItem>
-        </MenubarSubContent>
-    </MenubarSub>
-</MenubarContent> */}
 
