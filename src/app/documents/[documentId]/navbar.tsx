@@ -35,6 +35,7 @@ import {
     MenubarTrigger,
 } from "@/components/ui/menubar";
 
+import { Avatars } from "./avatars";
 import { DocumentInput } from "./document-input";
 import { useState } from "react";
 import { useEditorStore } from "@/store/use-editor-store";
@@ -49,16 +50,16 @@ export const Navbar = () => {
     const [rows, setRows] = useState(0);
     const [cols, setCols] = useState(0);
 
-    const insertTable = ({rows, cols}: {rows: number, cols: number}) =>{
+    const insertTable = ({ rows, cols }: { rows: number, cols: number }) => {
         editor
-        ?.chain()
-        .focus()
-        .insertTable({ rows, cols, withHeaderRow: false})
-        .run()
+            ?.chain()
+            .focus()
+            .insertTable({ rows, cols, withHeaderRow: false })
+            .run()
     };
 
     const handleInsertTable = (r: number, c: number) => {
-        insertTable({rows:r, cols:c});
+        insertTable({ rows: r, cols: c });
     };
 
     const onDownload = (blob: Blob, filename: string) => {
@@ -69,8 +70,8 @@ export const Navbar = () => {
         a.click();
     };
 
-    const onSaveJSON = () =>{
-        if(!editor) return;
+    const onSaveJSON = () => {
+        if (!editor) return;
 
         const content = editor.getJSON();
         const blob = new Blob([JSON.stringify(content)], {
@@ -78,9 +79,9 @@ export const Navbar = () => {
         });
         onDownload(blob, `document.json`) //TODO : Use document name
     }
-    
-    const onSaveHTML = () =>{
-        if(!editor) return;
+
+    const onSaveHTML = () => {
+        if (!editor) return;
 
         const content = editor.getHTML();
         const blob = new Blob([content], {
@@ -88,9 +89,9 @@ export const Navbar = () => {
         });
         onDownload(blob, `document.html`) //TODO : Use document name
     }
-    
-    const onSaveText = () =>{
-        if(!editor) return;
+
+    const onSaveText = () => {
+        if (!editor) return;
 
         const content = editor.getText();
         const blob = new Blob([content], {
@@ -125,7 +126,7 @@ export const Navbar = () => {
                                         <MenubarSubContent>
                                             <MenubarItem onClick={onSaveJSON}><FileJsonIcon className="size-4 mr-2" /> JSON</MenubarItem>
                                             <MenubarItem onClick={onSaveHTML}><GlobeIcon className="size-4 mr-2" /> HTML</MenubarItem>
-                                            <MenubarItem onClick={()=> window.print()}><BsFilePdf className="size-4 mr-2" /> PDF</MenubarItem>
+                                            <MenubarItem onClick={() => window.print()}><BsFilePdf className="size-4 mr-2" /> PDF</MenubarItem>
                                             <MenubarItem onClick={onSaveText}><FileTextIcon className="size-4 mr-2" /> Text</MenubarItem>
                                         </MenubarSubContent>
                                     </MenubarSub>
@@ -219,29 +220,29 @@ export const Navbar = () => {
                                             Text
                                         </MenubarSubTrigger>
                                         <MenubarSubContent>
-                                            <MenubarItem onClick={()=> editor?.chain().focus().toggleBold().run()}>
+                                            <MenubarItem onClick={() => editor?.chain().focus().toggleBold().run()}>
                                                 <BoldIcon className="size-4 mr-2" /> Bold
                                                 <MenubarShortcut>Ctrl + B</MenubarShortcut>
                                             </MenubarItem>
 
-                                            <MenubarItem onClick={()=> editor?.chain().focus().toggleItalic().run()}>
+                                            <MenubarItem onClick={() => editor?.chain().focus().toggleItalic().run()}>
                                                 <ItalicIcon className="size-4 mr-2" /> Italic
                                                 <MenubarShortcut>Ctrl + I</MenubarShortcut>
                                             </MenubarItem>
 
-                                            <MenubarItem onClick={()=> editor?.chain().focus().toggleUnderline().run()}>
+                                            <MenubarItem onClick={() => editor?.chain().focus().toggleUnderline().run()}>
                                                 <UnderlineIcon className="size-4 mr-2" /> Underline
                                                 <MenubarShortcut>Ctrl + U</MenubarShortcut>
                                             </MenubarItem>
 
-                                            <MenubarItem onClick={()=> editor?.chain().focus().toggleStrike().run()}>
+                                            <MenubarItem onClick={() => editor?.chain().focus().toggleStrike().run()}>
                                                 <StrikethroughIcon className="size-4 mr-2" /> <span>Strikethroug &nbsp;&nbsp;</span>
                                                 <MenubarShortcut>Ctrl + Shift + X</MenubarShortcut>
                                             </MenubarItem>
                                         </MenubarSubContent>
                                     </MenubarSub>
-                                    <MenubarItem onClick={()=> editor?.chain().focus().unsetAllMarks().run()}>
-                                        <RemoveFormattingIcon className="size-4 rm-2"/>
+                                    <MenubarItem onClick={() => editor?.chain().focus().unsetAllMarks().run()}>
+                                        <RemoveFormattingIcon className="size-4 rm-2" />
                                         Clear Formating
                                     </MenubarItem>
                                 </MenubarContent>
@@ -251,14 +252,15 @@ export const Navbar = () => {
                 </div>
             </div>
             <div className="flex gap-3 items-center pl-6">
-        <OrganizationSwitcher 
-          afterCreateOrganizationUrl="/"
-          afterLeaveOrganizationUrl="/"
-          afterSelectOrganizationUrl="/"
-          afterSelectPersonalUrl="/"
-        />
-        <UserButton />
-      </div>
+                <Avatars />
+                <OrganizationSwitcher
+                    afterCreateOrganizationUrl="/"
+                    afterLeaveOrganizationUrl="/"
+                    afterSelectOrganizationUrl="/"
+                    afterSelectPersonalUrl="/"
+                />
+                <UserButton />
+            </div>
         </nav>
     );
 };
