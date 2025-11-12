@@ -29,14 +29,14 @@ export const TemplatesGallery = () => {
     const onTemplateClick = (title: string, initialContent: string) => {
         setIsCreating(true);
         create({ title, initialContent })
-            .catch(()=> toast.error("something went wrong"))
-            .then((documentId) => {
-                toast.success("Document created");
-                router.push(`/documents/${documentId}`);
-            })
-            .finally(()=>{
+        .then((documentId) => {
+            toast.success("Document created! Redirecting...");
+            router.push(`/documents/${documentId}`);
+        })
+        .catch(()=> toast.error("something went wrong"))
+        .finally(()=>{
                 setIsCreating(false);
-            });
+        });
     };
 
     return (
@@ -59,8 +59,7 @@ export const TemplatesGallery = () => {
                                 >
                                     <button
                                         disabled={isCreating}
-                                        // TODO: Add proper initial content
-                                        onClick={() => onTemplateClick(template.label, "")}
+                                        onClick={() => onTemplateClick(template.label, template.initialContent)}
                                         style={{
                                             backgroundImage: `url(${template.imageUrl})`,
                                             backgroundSize: "cover",

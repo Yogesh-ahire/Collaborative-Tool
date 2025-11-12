@@ -289,3 +289,7 @@ table .column-resize-handle {
     display: none;
   }
 }
+
+div[data-radix-popper-content-wraper]{
+  z-index: 50 !important;
+}

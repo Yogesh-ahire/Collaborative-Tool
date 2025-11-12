@@ -1,17 +1,22 @@
 "use client";
 
 import { toast } from "sonner";
-import { getUsers } from "./actions";
+import { getUsers, getDocuments } from "./actions";
 import { ReactNode, useEffect, useMemo, useState } from "react";
+
 import {
     LiveblocksProvider,
     RoomProvider,
     ClientSideSuspense,
 } from "@liveblocks/react/suspense";
-import { useParams } from "next/navigation";
-import { FullscreenLoader } from "@/components/fullscreen-loader";
 
-type User = { id: string; name: string; avatar: string };
+import { FullscreenLoader } from "@/components/fullscreen-loader";
+import { LEFT_MARGIN_DEFAULT, RIGHT_MARGIN_DEFAULT } from "@/constants/margins";
+
+import { useParams } from "next/navigation";
+import { Id } from "../../../../convex/_generated/dataModel";
+
+type User = { id: string; name: string; avatar: string; color: string;};
 
 export function Room({ children }: { children: ReactNode }) {
     const params = useParams();
@@ -38,7 +43,17 @@ export function Room({ children }: { children: ReactNode }) {
     return (
         <LiveblocksProvider
             throttle={16}
-            authEndpoint="/api/liveblocks-auth"
+            authEndpoint={ async () => {
+                const endpoint = "/api/liveblocks-auth";
+                const room = params.documentId as string;
+
+                const response = await fetch(endpoint, {
+                    method: "POST",
+                    body: JSON.stringify({ room }),
+                });
+
+                return await response.json();
+            }}
             resolveUsers={({ userIds }) => {
                 return userIds.map(
                     (userId) => users.find((user)=> user.id === userId) ?? undefined
@@ -55,9 +70,18 @@ export function Room({ children }: { children: ReactNode }) {
 
                 return filteredUsers.map((user)=> user.id);
             }}
-            resolveRoomsInfo={() => []}
+            resolveRoomsInfo={ async ({ roomIds }) => {
+                const documents  = await getDocuments(roomIds as Id<"documents">[]);
+                return documents.map((document)=>({
+                    id: document.id,
+                    name: document.name,
+                }));
+            }}
         >
-            <RoomProvider id={params.documentId as string}>
+            <RoomProvider 
+                id={params.documentId as string}
+                initialStorage={{leftMargin:LEFT_MARGIN_DEFAULT, rightMargin:RIGHT_MARGIN_DEFAULT}}
+            >
                 <ClientSideSuspense fallback={<FullscreenLoader label="Room loading..." />}>
                     {children}
                 </ClientSideSuspense>
