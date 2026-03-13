@@ -32,7 +32,7 @@ export const IntroPage = () => {
                 {/* Logo + Brand */}
                 <div className="flex items-center gap-3 mb-3">
                     <Image
-                        src="/doczflow-intro.svg"
+                        src="/DoczFlow-logo.svg"
                         alt="DoczFlow Logo"
                         width={200}
                         height={200}
