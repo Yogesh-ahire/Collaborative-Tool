@@ -16,7 +16,7 @@ import { LEFT_MARGIN_DEFAULT, RIGHT_MARGIN_DEFAULT } from "@/constants/margins";
 import { useParams } from "next/navigation";
 import { Id } from "../../../../convex/_generated/dataModel";
 
-type User = { id: string; name: string; avatar: string; color: string;};
+type User = { id: string; name: string; avatar: string; color: string; };
 
 export function Room({ children }: { children: ReactNode }) {
     const params = useParams();
@@ -43,44 +43,49 @@ export function Room({ children }: { children: ReactNode }) {
     return (
         <LiveblocksProvider
             throttle={16}
-            authEndpoint={ async () => {
+            authEndpoint={async () => {
                 const endpoint = "/api/liveblocks-auth";
                 const room = params.documentId as string;
 
                 const response = await fetch(endpoint, {
                     method: "POST",
+                    headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ room }),
                 });
+
+                if (!response.ok) {
+                    throw new Error("Liveblocks auth failed");
+                }
 
                 return await response.json();
             }}
             resolveUsers={({ userIds }) => {
                 return userIds.map(
-                    (userId) => users.find((user)=> user.id === userId) ?? undefined
+                    (userId) => users.find((user) => user.id === userId) ?? undefined
                 )
             }}
-            resolveMentionSuggestions={({text}) => {
+            resolveMentionSuggestions={({ text }) => {
                 let filteredUsers = users;
 
-                if(text){
+                if (text) {
                     filteredUsers = users.filter((user) =>
                         user.name.toLowerCase().includes(text.toLowerCase())
                     );
                 }
 
-                return filteredUsers.map((user)=> user.id);
+                return filteredUsers.map((user) => user.id);
             }}
-            resolveRoomsInfo={ async ({ roomIds }) => {
-                const documents  = await getDocuments(roomIds as Id<"documents">[]);
-                return documents.map((document)=>({
+            resolveRoomsInfo={async ({ roomIds }) => {
+                const documents = await getDocuments(roomIds as Id<"documents">[]);
+                return documents.map((document) => ({
                     id: document.id,
                     name: document.name,
                 }));
             }}
         >
-            <RoomProvider 
+            <RoomProvider
                 id={params.documentId as string}
-                initialStorage={{leftMargin:LEFT_MARGIN_DEFAULT, rightMargin:RIGHT_MARGIN_DEFAULT}}
+                initialStorage={{ leftMargin: LEFT_MARGIN_DEFAULT, rightMargin: RIGHT_MARGIN_DEFAULT }}
             >
                 <ClientSideSuspense fallback={<FullscreenLoader label="Room loading..." />}>
                     {children}

@@ -15,12 +15,15 @@ interface ClerkOrgClaims {
 }
 
 export async function POST(req: Request) {
-    const { sessionClaims } = await auth();
-
+    const { sessionClaims, getToken } = await auth();
 
     if (!sessionClaims) {
         return new Response("Unauthorized", { status: 401 });
     }
+
+    const token = await getToken({ template: "convex" });
+
+    convex.setAuth(token!);
 
     const user = await currentUser();
 
@@ -29,8 +32,8 @@ export async function POST(req: Request) {
     }
 
     const { room } = await req.json();
-    const document = await convex.query(api.documents.getById, { id: room });
 
+    const document = await convex.query(api.documents.getById, { id: room });
 
     if (!document) {
         return new Response("Unauthorized", { status: 401 });
@@ -45,12 +48,19 @@ export async function POST(req: Request) {
         !!(document.organizationId && document.organizationId === orgId);
 
     if (!isOwner && !isOrganizationMember) {
+        return new Response("Forbidden", { status: 403 });
     }
 
-    const name = user.fullName ?? user.primaryEmailAddress?.emailAddress ?? "Anonymous";
-    
-    const nameToNumber = name.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    const hue = Math.abs(nameToNumber)%360;
+    const name =
+        user.fullName ??
+        user.primaryEmailAddress?.emailAddress ??
+        "Anonymous";
+
+    const nameToNumber = name
+        .split("")
+        .reduce((acc, char) => acc + char.charCodeAt(0), 0);
+
+    const hue = Math.abs(nameToNumber) % 360;
     const color = `hsl(${hue}, 80%, 60%)`;
 
     const session = liveblocks.prepareSession(user.id, {
@@ -60,8 +70,10 @@ export async function POST(req: Request) {
             color,
         },
     });
+
     session.allow(room, session.FULL_ACCESS);
+
     const { body, status } = await session.authorize();
 
     return new Response(body, { status });
-};
+}
