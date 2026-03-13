@@ -15,6 +15,9 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
+  icons: {
+    icon: "/favicon-32x32.png",
+  },
   title: "DoczFlow",
   description: "Real-Time Collaborative Document Editor",
 };
