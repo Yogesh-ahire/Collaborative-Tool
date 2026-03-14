@@ -1,41 +1,158 @@
-```
-https://www.youtube.com/watch?v=gq2bbDmSokU&t=1088s
-```
-completed till -- 6:57:00 
+<h1 align="center">DoczFlow – Real-Time Collaborative Document Editor</h1>
 
+<p align="center">
+  <img src="https://img.shields.io/badge/Next.js-Framework-black?logo=next.js"/>
+  <img src="https://img.shields.io/badge/React-Frontend-blue?logo=react"/>
+  <img src="https://img.shields.io/badge/TypeScript-Language-blue?logo=typescript"/>
+  <img src="https://img.shields.io/badge/Liveblocks-Realtime-purple"/>
+  <img src="https://img.shields.io/badge/Convex-Backend-orange"/>
+  <img src="https://img.shields.io/badge/Clerk-Authentication-green"/>
+  <img src="https://img.shields.io/badge/Deployment-Vercel-black?logo=vercel"/>
+</p>
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app)
-## Getting Started
+DoczFlow is a **real-time collaborative document editing platform** that enables multiple users to create, edit, and collaborate on documents simultaneously.
 
-First, run the development server:
+It provides **live synchronization, shared workspaces, mentions, comments, and organization-based access control**, making it suitable for team collaboration and knowledge management.
+
+The platform demonstrates modern **real-time system design and full-stack development practices** using modern web technologies.
+
+---
+
+# Live Demo
+
+🔗 https://collaborative-tool-lake.vercel.app
+
+---
+
+# Features
+
+### Real-Time Collaborative Editing
+Multiple users can edit the same document simultaneously with live synchronization.
+
+### Live Presence Indicators
+Shows active collaborators with real-time cursor updates and presence indicators.
+
+### Mentions and Comments
+Collaborators can mention other users and add comments inside documents.
+
+### Organization-Based Workspaces
+Documents can be organized and shared within teams or organizations.
+
+### Secure Authentication
+User authentication and identity management handled via Clerk.
+
+### Rich Text Editing
+Modern rich text editing experience powered by TipTap.
+
+---
+
+# Application Screenshots (Live Demo)
+
+### Document Dashboard
+
+<p align="center">
+  <img src="docs/images/dashboard.png" width="900"/>
+</p>
+
+### Collaborative Editor
+
+<p align="center">
+  <img src="docs/images/editor.png" width="900"/>
+</p>
+
+---
+
+# Tech Stack
+
+### Frontend
+- Next.js
+- React
+- TypeScript
+- Tailwind CSS
+
+### Editor
+- TipTap (ProseMirror based)
+
+### Real-Time Collaboration
+- Liveblocks
+
+### Backend
+- Convex
+
+### Authentication
+- Clerk
+
+### Deployment
+- Vercel
+
+---
+
+# System Architecture
+The following diagram shows the high-level architecture of DoczFlow.
+
+<p align="center">
+  <img src="docs/images/architecture.png" width="900"/>
+</p>
+
+---
+
+# Installation & Setup
+
+Clone the repository
 
 ```bash
+git clone https://github.com/Yogesh-ahire/Collaborative-Tool.git
+```
+Move to project folder
+```bash
+cd Collaborative-Tool
+```
+Install dependencies
+```bash
+npm install
+```
+Run development server
+```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+```
+Run Convex server
+```bash
+npx convex dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open in browser
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+http://localhost:3000
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
-## Learn More
+## Environment Variables
 
-To learn more about Next.js, take a look at the following resources:
+Create a `.env.local` file
+```bash
+NEXT_PUBLIC_CONVEX_URL=
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
+CLERK_SECRET_KEY=
+LIVEBLOCKS_SECRET_KEY=
+```
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+# Future Improvements
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- Document version history
+- AI-powered document assistant
+- Advanced role-based access control
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+# Author
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Yogesh Ahire
+
+🔗 GitHub: https://github.com/Yogesh-ahire  
+🔗 LinkedIn: https://linkedin.com/in/yogesh23-ahire
+
+
+
+## License
+
+This project is built for educational and portfolio purposes.
