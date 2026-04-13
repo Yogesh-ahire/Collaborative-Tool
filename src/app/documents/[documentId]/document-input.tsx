@@ -8,6 +8,8 @@ import { useDebounce } from "@/hooks/use-debounce";
 import { useStatus } from "@liveblocks/react";
 import { LoaderIcon } from "lucide-react";
 
+import { VersionHistoryPanel } from "@/components/version-history-panel";
+
 interface DocumentInputProps {
     title: string;
     id: Id<"documents">;
@@ -23,6 +25,8 @@ export const DocumentInput = ({ title, id }: DocumentInputProps) => {
     const inputRef = useRef<HTMLInputElement>(null);
 
     const mutate = useMutation(api.documents.updateById);
+
+    const [openVersion, setOpenVersion] = useState(false);
 
     const debouncedUpdate = useDebounce((newValue: string) => {
         if (newValue === title) return;
@@ -85,10 +89,20 @@ export const DocumentInput = ({ title, id }: DocumentInputProps) => {
                     {title}
                 </span>)
             }
-            {showError && <BsCloudSlash className="size-4"/>}
-            {!showError && !showLoader &&  <BsCloudCheck />}
-            {showLoader && <LoaderIcon className="size-4 animate-spin text-muted-foreground"/>}
-           
+            {showError && <BsCloudSlash className="size-4" />}
+            {!showError && !showLoader && (
+                <BsCloudCheck
+                    className="size-4 cursor-pointer"
+                    onClick={() => setOpenVersion(true)}
+                />
+            )}
+            {showLoader && <LoaderIcon className="size-4 animate-spin text-muted-foreground" />}
+            {openVersion && (
+                <VersionHistoryPanel
+                    documentId={id}
+                    onClose={() => setOpenVersion(false)}
+                />
+            )}
         </div >
     );
 };

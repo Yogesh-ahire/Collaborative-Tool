@@ -48,17 +48,25 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { DropdownMenuItem } from "@radix-ui/react-dropdown-menu";
+// import AIDialog from "@/components/ai/ai-dialog"
+import { Sparkles } from "lucide-react";
+// import AIAssistButton from "@/components/ai/ai-assist-button"
+
+//version histroy
+// import { useMutation } from "convex/react";
+// import { api } from "../../../../convex/_generated/api";
+// import { Id } from "../../../../convex/_generated/dataModel";
 
 /*line height */
 const LineHeightButton = () => {
     const { editor } = useEditorStore();
 
     const lineHeights = [
-        {label: "Default", value: "normal"},
-        {label: "Single", value: "1"},
-        {label: "1.15", value: "1.15"},
-        {label: "1.5", value: "1.5"},
-        {label: "Double", value: "2"},
+        { label: "Default", value: "normal" },
+        { label: "Single", value: "1" },
+        { label: "1.15", value: "1.15" },
+        { label: "1.5", value: "1.5" },
+        { label: "Double", value: "2" },
     ];
 
     return (
@@ -71,7 +79,7 @@ const LineHeightButton = () => {
                 </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="p-1 flex flex-col gap-y-1">
-                {lineHeights.map(({ label, value}) => (
+                {lineHeights.map(({ label, value }) => (
                     <button
                         key={value}
                         onClick={() => editor?.chain().focus().setLineHeight(value).run()}
@@ -93,47 +101,47 @@ const FontSizeButton = () => {
     const { editor } = useEditorStore();
 
     const currentFontSize = editor?.getAttributes("textStyle").fontSize
-    ? editor?.getAttributes("textStyle").fontSize.replace("px", "")
-    :"16";
+        ? editor?.getAttributes("textStyle").fontSize.replace("px", "")
+        : "16";
 
     const [fontSize, setFontSize] = useState(currentFontSize);
     const [inputeValue, setInputeValue] = useState(fontSize);
     const [isEditing, setIsEditing] = useState(false);
 
-    const updateFontSize = (newSize: string) =>{
+    const updateFontSize = (newSize: string) => {
         const size = parseInt(newSize);
-        if(!isNaN(size) && size>0){
+        if (!isNaN(size) && size > 0) {
             editor?.chain().focus().setFontSize(`${size}px`).run();
             setFontSize(newSize);
             setInputeValue(newSize);
-            setIsEditing(false);  
+            setIsEditing(false);
         }
     };
 
-    const handleInputeChange = (e: React.ChangeEvent<HTMLInputElement>) =>{
+    const handleInputeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setInputeValue(e.target.value);
     }
 
-    const handelInputBlur = () =>{
+    const handelInputBlur = () => {
         updateFontSize(inputeValue);
     }
 
-    const handelKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) =>{
-        if(e.key === "Enter"){
+    const handelKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === "Enter") {
             e.preventDefault();
             updateFontSize(inputeValue);
             editor?.commands.focus();
         }
     }
 
-    const increment = () =>{
+    const increment = () => {
         const newSize = parseInt(fontSize) + 1;
         updateFontSize(newSize.toString());
     }
-    
-    const decrement = () =>{
+
+    const decrement = () => {
         const newSize = parseInt(fontSize) - 1;
-        if(newSize>0){
+        if (newSize > 0) {
             updateFontSize(newSize.toString());
         }
     }
@@ -146,27 +154,27 @@ const FontSizeButton = () => {
             >
                 <MinusIcon className="size-4" />
             </button>
-           {isEditing?(
-            <input 
-                type ="text"
-                value={inputeValue}
-                onChange={handleInputeChange}
-                onBlur={handelInputBlur}
-                onKeyDown={handelKeyDown}
-                className="h-7 w-10 text-sm text-center border border-neutral-400 rounded-sm bg-transparent focus:outline-none focus:ring-0"
-            />
-           ):(
+            {isEditing ? (
+                <input
+                    type="text"
+                    value={inputeValue}
+                    onChange={handleInputeChange}
+                    onBlur={handelInputBlur}
+                    onKeyDown={handelKeyDown}
+                    className="h-7 w-10 text-sm text-center border border-neutral-400 rounded-sm bg-transparent focus:outline-none focus:ring-0"
+                />
+            ) : (
+                <button
+                    onClick={() => {
+                        setIsEditing(true);
+                        setFontSize(currentFontSize);
+                    }}
+                    className="h-7 w-10 text-sm text-center border border-neutral-400 rounded-sm bg-transparent cursor-text"
+                >
+                    {currentFontSize}
+                </button>
+            )}
             <button
-                onClick={()=>{
-                    setIsEditing(true);
-                    setFontSize(currentFontSize);
-                }}
-                className="h-7 w-10 text-sm text-center border border-neutral-400 rounded-sm bg-transparent cursor-text"
-            >
-                {currentFontSize}
-            </button>
-           )}
-           <button
                 onClick={increment}
                 className="h-7 w-7 shrink-0 flex items-center justify-center rounded-sm hover:bg-neutral-200/80"
             >
@@ -593,9 +601,12 @@ const ToolbarButton = ({
     )
 };
 
-export const Toolbar = () => {
-    const { editor } = useEditorStore();
+interface ToolbarProps {
+    onAiClick: () => void;
+}
 
+export const Toolbar = ({ onAiClick }: ToolbarProps) => {
+    const { editor } = useEditorStore();
     const sections: {
         label: string;
         icon: LucideIcon;
@@ -652,7 +663,7 @@ export const Toolbar = () => {
                     label: "Comment",
                     icon: MessageSquarePlusIcon,
                     onClick: () => editor?.chain().focus().addPendingComment().run(),
-                    isActive: editor?.isActive("liveblocksCommentMark") 
+                    isActive: editor?.isActive("liveblocksCommentMark")
                 },
                 {
                     label: "List Todo",
@@ -696,6 +707,15 @@ export const Toolbar = () => {
             {sections[2].map((item) => (
                 <ToolbarButton key={item.label}{...item} />
             ))}
+
+            <Separator orientation="vertical" className="h-6 w-[1.5px] bg-neutral-400/80" />
+
+            <button
+                onClick={onAiClick} // Use the prop here
+                className="h-7 px-3 hover:bg-neutral-200/80 rounded-sm flex items-center justify-center transition"
+            >
+                <Sparkles className="size-4 text-purple-600" />
+            </button>
         </div>
     );
 };

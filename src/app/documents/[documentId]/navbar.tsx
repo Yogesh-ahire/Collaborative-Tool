@@ -63,14 +63,17 @@ export const Navbar = ({ data }: NavbarProps) => {
     const onNewDocument = () => {
         mutation({
             title: "Untitled document",
-            initialContent: ""
+            initialContent: {
+                type: "doc",
+                content: [],
+            }
         })
-        .catch(()=> toast.error("Something went wrong"))
-        .then((id)=>{
-            toast.success("Document created! Redirecting...")
-            router.push(`/documents/${id}`);
-        })
-    } 
+            .catch(() => toast.error("Something went wrong"))
+            .then((id) => {
+                toast.success("Document created! Redirecting...")
+                router.push(`/documents/${id}`);
+            })
+    }
 
     /*table insert fuctinalities */
     const [rows, setRows] = useState(0);
@@ -94,6 +97,7 @@ export const Navbar = ({ data }: NavbarProps) => {
         a.href = url;
         a.download = filename;
         a.click();
+        URL.revokeObjectURL(url); // ✅ FIX
     };
 
     const onSaveJSON = () => {
@@ -103,7 +107,7 @@ export const Navbar = ({ data }: NavbarProps) => {
         const blob = new Blob([JSON.stringify(content)], {
             type: "application/json",
         });
-        onDownload(blob, `${data.title}.json`) 
+        onDownload(blob, `${data.title}.json`)
     }
     const onSaveHTML = () => {
         if (!editor) return;
@@ -122,9 +126,33 @@ export const Navbar = ({ data }: NavbarProps) => {
         const blob = new Blob([content], {
             type: "text/plain",
         });
-        onDownload(blob, `${data.title}.txt`) 
+        onDownload(blob, `${data.title}.txt`)
     }
 
+    const onSaveDocx = async () => {
+        if (!editor) return;
+
+        try {
+            const html = editor.getHTML();
+
+            const res = await fetch("/api/export-docx", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ html }),
+            });
+
+            if (!res.ok) throw new Error();
+
+            const blob = await res.blob();
+
+            onDownload(blob, `${data.title}.docx`);
+        } catch (err) {
+            console.error(err);
+            toast.error("DOCX export failed");
+        }
+    };
 
 
     return (
@@ -134,7 +162,7 @@ export const Navbar = ({ data }: NavbarProps) => {
                     <Image src="/DoczFlow-logo.svg" alt="logo" width={36} height={36} />
                 </Link>
                 <div className="flex flex-col">
-                    <DocumentInput title={data.title} id={data._id}  />
+                    <DocumentInput title={data.title} id={data._id} />
                     <div className="flex">
                         <Menubar className="border-none bg-transparent shadow-none h-auto p-0">
                             {/* File Menu */}
@@ -153,6 +181,10 @@ export const Navbar = ({ data }: NavbarProps) => {
                                             <MenubarItem onClick={onSaveHTML}><GlobeIcon className="size-4 mr-2" /> HTML</MenubarItem>
                                             <MenubarItem onClick={() => window.print()}><BsFilePdf className="size-4 mr-2" /> PDF</MenubarItem>
                                             <MenubarItem onClick={onSaveText}><FileTextIcon className="size-4 mr-2" /> Text</MenubarItem>
+                                            <MenubarItem onClick={onSaveDocx}>
+                                                <FileIcon className="size-4 mr-2" />
+                                                DOCX
+                                            </MenubarItem>
                                         </MenubarSubContent>
                                     </MenubarSub>
                                     <MenubarItem onClick={onNewDocument}>
@@ -162,21 +194,21 @@ export const Navbar = ({ data }: NavbarProps) => {
                                     <MenubarSeparator />
                                     <RenameDialog documentId={data._id} initialTitle={data.title}>
                                         <MenubarItem
-                                           onClick={(e)=> e.stopPropagation()}
-                                           onSelect={(e)=> e.preventDefault()}
+                                            onClick={(e) => e.stopPropagation()}
+                                            onSelect={(e) => e.preventDefault()}
                                         >
-                                        <FilePenIcon className="size-4 mr-2" />
-                                        Rename
-                                    </MenubarItem>
+                                            <FilePenIcon className="size-4 mr-2" />
+                                            Rename
+                                        </MenubarItem>
                                     </RenameDialog>
                                     <RemoveDialog documentId={data._id}>
-                                         <MenubarItem
-                                           onClick={(e)=> e.stopPropagation()}
-                                           onSelect={(e)=> e.preventDefault()}
-                                         >
-                                        <TrashIcon className="size-4 mr-2" />
-                                        Remove
-                                    </MenubarItem>
+                                        <MenubarItem
+                                            onClick={(e) => e.stopPropagation()}
+                                            onSelect={(e) => e.preventDefault()}
+                                        >
+                                            <TrashIcon className="size-4 mr-2" />
+                                            Remove
+                                        </MenubarItem>
                                     </RemoveDialog>
                                     <MenubarSeparator />
                                     <MenubarItem onClick={() => window.print()}>
@@ -288,7 +320,7 @@ export const Navbar = ({ data }: NavbarProps) => {
             </div>
             <div className="flex gap-3 items-center pl-6">
                 <Avatars />
-                <Inbox/>
+                <Inbox />
                 <OrganizationSwitcher
                     afterCreateOrganizationUrl="/"
                     afterLeaveOrganizationUrl="/"
