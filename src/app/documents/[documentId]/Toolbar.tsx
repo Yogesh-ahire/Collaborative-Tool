@@ -17,6 +17,7 @@ import {
     ListIcon,
     ListOrderedIcon,
     ListTodoIcon,
+    LoaderIcon,
     LucideIcon,
     MessageSquarePlusIcon,
     MinusIcon,
@@ -52,6 +53,7 @@ import { DropdownMenuItem } from "@radix-ui/react-dropdown-menu";
 import { Sparkles } from "lucide-react";
 // import AIAssistButton from "@/components/ai/ai-assist-button"
 
+import { useImageUpload } from "@/hooks/use-image-upload";
 //version histroy
 // import { useMutation } from "convex/react";
 // import { api } from "../../../../convex/_generated/api";
@@ -288,86 +290,109 @@ const AlignButton = () => {
 
 /*image button */
 const ImageButton = () => {
-    const { editor } = useEditorStore();
-    const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const [imageUrl, SetImageUrl] = useState("");
+  const { editor } = useEditorStore();
+  const { uploadImage } = useImageUpload();
 
-    const onChange = (src: string) => {
-        editor?.chain().focus().setImage({ src }).run();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [imageUrl, setImageUrl] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
+
+  const onChange = (src: string) => {
+    if (!editor || !src) return;
+    editor.chain().focus().setImage({ src }).run();
+  };
+
+  // ✅ FINAL FIX (ONLY REAL UPLOAD)
+  const onUpload = () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      try {
+        setIsUploading(true);
+
+        // 🔥 THIS IS THE ONLY VALID FLOW
+        const uploadedUrl = await uploadImage(file);
+
+        if (!uploadedUrl) throw new Error("Upload failed");
+
+        // ✅ insert REAL URL (not blob)
+        onChange(uploadedUrl);
+
+      } catch (err) {
+        console.error("Upload failed:", err);
+        alert("Image upload failed");
+      } finally {
+        setIsUploading(false);
+      }
     };
 
-    const onUpload = () => {
-        const input = document.createElement("input");
-        input.type = "file";
-        input.accept = "image/*";
+    input.click();
+  };
 
-        input.onchange = (e) => {
-            const file = (e.target as HTMLInputElement).files?.[0];
-            if (file) {
-                const imageUrl = URL.createObjectURL(file);
-                onChange(imageUrl);
-            }
-        }
+  const handleImageUrlSubmit = () => {
+    const trimmed = imageUrl.trim();
+    if (!trimmed) return;
 
-        input.click();
-    };
+    onChange(trimmed);
+    setImageUrl("");
+    setIsDialogOpen(false);
+  };
 
-    const handleImageUrlSubmit = () => {
-        if (imageUrl) {
-            onChange(imageUrl);
-            SetImageUrl("");
-            setIsDialogOpen(false);
-        }
-    };
+  return (
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button className="h-7 min-w-7 flex items-center justify-center hover:bg-neutral-200/80 rounded-sm">
+            {isUploading ? (
+              <LoaderIcon className="size-4 animate-spin" />
+            ) : (
+              <ImageIcon className="size-4" />
+            )}
+          </button>
+        </DropdownMenuTrigger>
 
-    return (
-        <>
-            <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <button
-                        className="h-7 min-w-7 shrink-0 flex flex-col items-center justify-center rounded-sm hover:bg-neutral-200/80 px-1.5 overflow-hidden text-sm"
-                    >
-                        <ImageIcon className="size-4" />
-                    </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                    <DropdownMenuItem onClick={onUpload} className="flex">
-                        <UploadIcon className="size-4 mr-2" />
-                        Upload
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setIsDialogOpen(true)} className="flex">
-                        <SearchIcon className="size-4 mr-2" />
-                        Paste Image URL
-                    </DropdownMenuItem>
-                </DropdownMenuContent>
-            </DropdownMenu>
+        <DropdownMenuContent>
+          <DropdownMenuItem onClick={onUpload} disabled={isUploading}>
+            <UploadIcon className="size-4 mr-2" />
+            Upload
+          </DropdownMenuItem>
 
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>
-                            Insert Image URL
-                        </DialogTitle>
-                    </DialogHeader>
-                    <Input
-                        placeholder="Insert Image URL"
-                        value={imageUrl}
-                        onChange={(e) => SetImageUrl(e.target.value)}
-                        onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                                handleImageUrlSubmit();
-                            }
-                        }}
-                    />
-                    <DialogFooter>
-                        <Button onClick={handleImageUrlSubmit}>
-                            Insert
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-        </>
-    )
+          <DropdownMenuItem onClick={() => setIsDialogOpen(true)}>
+            <SearchIcon className="size-4 mr-2" />
+            Paste Image URL
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Insert Image URL</DialogTitle>
+          </DialogHeader>
+
+          <Input
+            placeholder="https://example.com/image.png"
+            value={imageUrl}
+            onChange={(e) => setImageUrl(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleImageUrlSubmit();
+            }}
+          />
+
+          <DialogFooter>
+            <Button onClick={handleImageUrlSubmit}>
+              Insert
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
 };
 
 /*Link Button */
