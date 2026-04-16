@@ -198,32 +198,57 @@ export const createVersion = mutation({
   args: {
     documentId: v.id("documents"),
     content: v.any(),
-    versionName: v.string(),
+    versionName: v.optional(v.string()),
+    isAuto: v.optional(v.boolean()),
   },
-  handler: async (ctx, { documentId, content, versionName }) => {
+  handler: async (ctx, { documentId, content, versionName, isAuto }) => {
     const user = await ctx.auth.getUserIdentity();
+    if (!user) throw new ConvexError("Unauthorized");
 
-    if (!user) {
-      throw new ConvexError("Unauthorized");
-    }
-
-    const existingVersions = await ctx.db
+    // 🔢 Get latest version number FAST
+    const latest = await ctx.db
       .query("document_versions")
-      .withIndex("by_document_id", (q) =>
+      .withIndex("by_document_version", (q) =>
         q.eq("documentId", documentId)
       )
-      .collect();
+      .order("desc")
+      .first();
 
-    const versionNumber = existingVersions.length + 1;
+    const versionNumber = latest ? latest.versionNumber + 1 : 1;
 
-    return await ctx.db.insert("document_versions", {
+    // ✅ Insert version
+    const inserted = await ctx.db.insert("document_versions", {
       documentId,
       content,
       createdBy: user.name || user.email || user.subject,
       createdAt: Date.now(),
       versionNumber,
       versionName,
+      isAuto: isAuto ?? false,
     });
+
+    // 🧹 AUTO PRUNING (ONLY for auto versions)
+    if (isAuto) {
+      const autos = await ctx.db
+        .query("document_versions")
+        .withIndex("by_document_auto", (q) =>
+          q.eq("documentId", documentId).eq("isAuto", true)
+        )
+        .order("desc")
+        .collect();
+
+      // keep last 15 auto versions
+      const MAX_AUTO = 15;
+
+      if (autos.length > MAX_AUTO) {
+        const toDelete = autos.slice(MAX_AUTO);
+        for (const v of toDelete) {
+          await ctx.db.delete(v._id);
+        }
+      }
+    }
+
+    return inserted;
   },
 });
 

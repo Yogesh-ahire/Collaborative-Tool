@@ -40,8 +40,10 @@ export const VersionHistoryPanel = ({ documentId, onClose }: Props) => {
   const createVersion = useMutation(api.documents.createVersion);
 
   const [versionName, setVersionName] = useState("");
-  const [selectedVersion, setSelectedVersion] =
-    useState<Doc<"document_versions"> | null>(null);
+  const [selectedVersion, setSelectedVersion] = useState<Doc<"document_versions"> | null>(null);
+  
+  // ✅ NEW: Tab State for toggling lists
+  const [activeTab, setActiveTab] = useState<"manual" | "auto">("manual");
 
   const others = useOthers();
   const hasOtherUsers = others.length > 0;
@@ -60,6 +62,11 @@ export const VersionHistoryPanel = ({ documentId, onClose }: Props) => {
 
   if (!versions) return null;
 
+  // ✅ NEW: Filter versions based on type
+  const manualVersions = versions.filter((v) => !v.isAuto);
+  const autoVersions = versions.filter((v) => v.isAuto);
+  const displayVersions = activeTab === "manual" ? manualVersions : autoVersions;
+
   return (
     <>
       {/* MAIN POPUP */}
@@ -69,55 +76,95 @@ export const VersionHistoryPanel = ({ documentId, onClose }: Props) => {
             <DialogTitle>Version History</DialogTitle>
           </DialogHeader>
 
-          {/* SAVE VERSION */}
-          <div className="space-y-2">
-            <Input
-              placeholder="Enter version name..."
-              value={versionName}
-              onChange={(e) => setVersionName(e.target.value)}
-            />
+          {/* SAVE VERSION (Only show on Manual Tab) */}
+          {activeTab === "manual" && (
+            <div className="space-y-2">
+              <Input
+                placeholder="Enter version name..."
+                value={versionName}
+                onChange={(e) => setVersionName(e.target.value)}
+              />
 
-            <Button
-              onClick={async () => {
-                if (!versionName) return;
+              <Button
+                onClick={async () => {
+                  if (!versionName) return;
 
-                const editor = window.editorInstance;
-                if (!editor) return;
+                  const editor = window.editorInstance;
+                  if (!editor) return;
 
-                await createVersion({
-                  documentId,
-                  content: editor.getJSON(),
-                  versionName,
-                });
+                  await createVersion({
+                    documentId,
+                    content: editor.getJSON(),
+                    versionName,
+                    isAuto: false, // Explicitly manual
+                  });
 
-                setVersionName("");
-                toast.success("Version saved");
-              }}
-              className="w-full"
+                  setVersionName("");
+                  
+                  // 🔥 FIX 4: Fire the event to reset Auto-Save counters in Editor.tsx!
+                  window.dispatchEvent(new Event("manual-save-triggered"));
+
+                  toast.success("Version saved");
+                }}
+                className="w-full"
+              >
+                Save Version
+              </Button>
+            </div>
+          )}
+
+          {/* ✅ NEW: TABS UI */}
+          <div className="flex gap-2 mt-4 bg-gray-100 p-1 rounded-md">
+            <button
+              onClick={() => setActiveTab("manual")}
+              className={`flex-1 text-sm py-1.5 rounded-sm font-medium transition-colors ${
+                activeTab === "manual" ? "bg-white shadow-sm text-black" : "text-gray-500 hover:text-black"
+              }`}
             >
-              Save Version
-            </Button>
+              Manual Saves ({manualVersions.length})
+            </button>
+            <button
+              onClick={() => setActiveTab("auto")}
+              className={`flex-1 text-sm py-1.5 rounded-sm font-medium transition-colors ${
+                activeTab === "auto" ? "bg-white shadow-sm text-black" : "text-gray-500 hover:text-black"
+              }`}
+            >
+              Auto Saves ({autoVersions.length})
+            </button>
           </div>
 
           {/* VERSION LIST */}
-          <div className="max-h-[200px] overflow-auto space-y-2 mt-4">
-            {versions.map((v) => (
-              <div
-                key={v._id}
-                className="border p-2 rounded cursor-pointer hover:bg-gray-100"
-                onClick={() => setSelectedVersion(v)}
-              >
-                <p className="font-medium">
-                  {v.versionName || `Version ${v.versionNumber}`}
-                </p>
+          <div className="max-h-[200px] min-h-[150px] overflow-auto space-y-2 mt-2">
+            {displayVersions.length === 0 ? (
+              <p className="text-center text-sm text-muted-foreground pt-4">
+                No {activeTab} versions found.
+              </p>
+            ) : (
+              displayVersions.map((v) => (
+                <div
+                  key={v._id}
+                  className="border p-2 rounded cursor-pointer hover:bg-gray-100 flex flex-col"
+                  onClick={() => setSelectedVersion(v)}
+                >
+                  <div className="flex justify-between items-start">
+                    <p className="font-medium text-sm">
+                      {v.versionName || (v.isAuto ? "Auto Recovery Snapshot" : `Version ${v.versionNumber}`)}
+                    </p>
+                    {v.isAuto && (
+                      <span className="bg-blue-100 text-blue-700 text-[10px] px-1.5 py-0.5 rounded-full font-semibold">
+                        AUTO
+                      </span>
+                    )}
+                  </div>
 
-                <p className="text-xs text-muted-foreground">
-                  {new Date(v.createdAt).toLocaleString()}
-                </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {new Date(v.createdAt).toLocaleString()}
+                  </p>
 
-                <p className="text-xs">by {v.createdBy}</p>
-              </div>
-            ))}
+                  <p className="text-xs text-gray-500">by {v.createdBy}</p>
+                </div>
+              ))
+            )}
           </div>
         </DialogContent>
       </Dialog>
@@ -128,12 +175,12 @@ export const VersionHistoryPanel = ({ documentId, onClose }: Props) => {
           <DialogContent className="max-w-3xl">
             <DialogHeader>
               <DialogTitle>
-                {selectedVersion.versionName || "Untitled Version"}
+                {selectedVersion.versionName || (selectedVersion.isAuto ? "Auto Snapshot" : "Untitled Version")}
               </DialogTitle>
             </DialogHeader>
 
             {/* METADATA */}
-            <div className="text-sm text-muted-foreground space-y-1 mb-3">
+            <div className="text-sm text-muted-foreground space-y-1 mb-3 flex gap-4">
               <p><b>Version:</b> {selectedVersion.versionNumber}</p>
               <p><b>Created By:</b> {selectedVersion.createdBy}</p>
               <p>
@@ -152,19 +199,16 @@ export const VersionHistoryPanel = ({ documentId, onClose }: Props) => {
                 onClick={() => {
                   const editor = window.editorInstance;
 
-                  // ❌ CASE 1: Editor not ready
                   if (!editor) {
                     toast.error("Editor not ready. Try again.");
                     return;
                   }
 
-                  // ❌ CASE 2: Empty content
                   if (!selectedVersion?.content) {
                     toast.error("This version has no content.");
                     return;
                   }
 
-                  // ⚠️ CASE 3: Large content warning
                   const contentSize = JSON.stringify(selectedVersion.content).length;
 
                   if (contentSize > 50000) {
@@ -174,21 +218,18 @@ export const VersionHistoryPanel = ({ documentId, onClose }: Props) => {
                     if (!confirmLarge) return;
                   }
 
-                  // ⚠️ CASE 4: Multiple users warning
                   if (hasOtherUsers) {
                     const confirmUsers = confirm(
                       "⚠️ Other users are editing this document.\nThis will APPEND content at the End.\nDo you want to continue?"
                     );
                     if (!confirmUsers) return;
-                  }else{
+                  } else {
+                    const confirmFinal = confirm(
+                      "This will INSERT the selected version into your document.\nExisting content will NOT be replaced.\n\nContinue?"
+                    );
+                    if (!confirmFinal) return;
+                  }
 
-                  // ✅ FINAL INFO CONFIRM (clear UX)
-                  const confirmFinal = confirm(
-                    "This will INSERT the selected version into your document.\nExisting content will NOT be replaced.\n\nContinue?"
-                  );
-
-                  if (!confirmFinal) return;
-                }
                   // ✅ SAFE INSERT
                   editor
                     .chain()

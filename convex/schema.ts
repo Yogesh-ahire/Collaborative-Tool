@@ -16,15 +16,20 @@ export default defineSchema({
       filterFields: ["ownerId", "organizationId"],
     }),
 
-  // ✅ NEW TABLE
+
+    //version table
  document_versions: defineTable({
   documentId: v.id("documents"),
   content: v.any(),
   createdBy: v.string(),
   createdAt: v.number(),
   versionNumber: v.number(),
-  versionName: v.optional(v.string()), // ✅ FIX
+  versionName: v.optional(v.string()),
+
+  // ✅ NEW FIELDS (SAFE)
+  isAuto: v.optional(v.boolean()),
 })
-    .index("by_document_id", ["documentId"])
-    .index("by_document_version", ["documentId", "versionNumber"]),
+.index("by_document_id", ["documentId"])
+.index("by_document_version", ["documentId", "versionNumber"])
+.index("by_document_auto", ["documentId", "isAuto"]), // ✅ for pruning
 });

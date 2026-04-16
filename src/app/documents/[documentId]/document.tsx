@@ -36,7 +36,10 @@ export const Document = ({ preloadedDocument }: DocumentProps) => {
           )}
 
           <div className="flex-1 overflow-auto">
-            <Editor initialContent={document.initialContent} />
+            <Editor 
+              initialContent={document.initialContent} 
+              documentId={document._id}
+            />
           </div>
         </div>
       </div>

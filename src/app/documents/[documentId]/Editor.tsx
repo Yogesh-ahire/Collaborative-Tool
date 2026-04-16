@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useEffect } from "react";
 
 import StarterKit from "@tiptap/starter-kit";
 import TaskItem from "@tiptap/extension-task-item";
@@ -34,8 +34,13 @@ import {
 } from "@/constants/margins";
 
 import { Editor as TiptapEditor } from "@tiptap/core";
+import { Transaction } from "@tiptap/pm/state"; // ✅ FIX: Added correct type import
 
 import { JSONContent } from "@/types/editor";
+
+import { useMutation } from "convex/react";
+import { api } from "../../../../convex/_generated/api";
+import { Id } from "../../../../convex/_generated/dataModel";
 
 declare global {
   interface Window {
@@ -45,10 +50,11 @@ declare global {
 
 interface EditorProps {
   initialContent?: JSONContent;
+  documentId: Id<"documents">;
 }
 
-export const Editor = ({ initialContent }: EditorProps) => {
-  const initialized = useRef(false); // ✅ CRITICAL FIX
+export const Editor = ({ initialContent, documentId }: EditorProps) => {
+  const initialized = useRef(false);
 
   const leftMargin =
     useStorage((root) => root.leftMargin) ?? LEFT_MARGIN_DEFAULT;
@@ -70,7 +76,6 @@ export const Editor = ({ initialContent }: EditorProps) => {
       window.editorInstance = editor;
       setEditor(editor);
 
-      // ✅ APPLY INITIAL CONTENT ONLY ONCE
       if (!initialized.current && initialContent) {
         initialized.current = true;
 
@@ -164,6 +169,76 @@ export const Editor = ({ initialContent }: EditorProps) => {
       TaskList,
     ],
   });
+
+  const pendingChanges = useRef(0);
+  const lastSaveTime = useRef(Date.now());
+  const debounceTimer = useRef<NodeJS.Timeout | null>(null);
+
+  const createVersion = useMutation(api.documents.createVersion);
+
+  const STEP_THRESHOLD = 120;
+  const TIME_THRESHOLD = 5 * 60 * 1000;
+  const IDLE_TIME = 3000;
+
+  useEffect(() => {
+    if (!editor) return;
+
+    // ✅ FIX: Replaced 'any' with the correct 'Transaction' type
+    const handleUpdate = ({ transaction }: { transaction: Transaction }) => {
+      // 1. Ignore if no actual content changed
+      if (!transaction.docChanged) return;
+
+      // 2. 🔥 THE RACE CONDITION FIX: 
+      // If the change came from Liveblocks (another user), ignore it. 
+      // Only the user actively typing should trigger their local auto-save timer.
+      if (transaction.getMeta("liveblocks")) return;
+
+      pendingChanges.current++;
+
+      if (debounceTimer.current) {
+        clearTimeout(debounceTimer.current);
+      }
+
+      debounceTimer.current = setTimeout(async () => {
+        const now = Date.now();
+
+        if (pendingChanges.current === 0) return;
+
+        const shouldSaveBySteps = pendingChanges.current >= STEP_THRESHOLD;
+        const shouldSaveByTime = now - lastSaveTime.current >= TIME_THRESHOLD;
+
+        if (shouldSaveBySteps || shouldSaveByTime) {
+          if (!editor) return;
+
+          await createVersion({
+            documentId,
+            content: editor.getJSON(),
+            isAuto: true,
+          });
+
+          pendingChanges.current = 0;
+          lastSaveTime.current = now;
+
+          console.log("✅ Auto version saved by active user");
+        }
+      }, IDLE_TIME);
+    };
+
+    editor.on("update", handleUpdate);
+
+    const handleManualSaveReset = () => {
+      pendingChanges.current = 0;
+      lastSaveTime.current = Date.now();
+      console.log("🔄 Auto-save counters reset due to Manual Save.");
+    };
+
+    window.addEventListener("manual-save-triggered", handleManualSaveReset);
+
+    return () => {
+      editor.off("update", handleUpdate);
+      window.removeEventListener("manual-save-triggered", handleManualSaveReset);
+    };
+  }, [editor, documentId]);
 
   return (
     <div className="size-full overflow-x-auto bg-[#F9FBFD] px-4 print:p-0 print:bg-white print:overflow-visible">
