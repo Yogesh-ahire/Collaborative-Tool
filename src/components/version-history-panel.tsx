@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+// 🔥 FIX: Imported from "convex/react", NOT "react"
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Id, Doc } from "../../convex/_generated/dataModel";
@@ -18,10 +19,16 @@ import { Input } from "@/components/ui/input";
 
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
+import ImageResize from "tiptap-extension-resize-image";
+import Table from "@tiptap/extension-table";
+import TableCell from "@tiptap/extension-table-cell";
+import TableHeader from "@tiptap/extension-table-header";
+import TableRow from "@tiptap/extension-table-row";
+import TaskItem from "@tiptap/extension-task-item";
+import TaskList from "@tiptap/extension-task-list";
 
 import { Editor } from "@tiptap/core";
 import { toast } from "sonner";
-
 import { useOthers } from "@liveblocks/react";
 
 declare global {
@@ -40,9 +47,9 @@ export const VersionHistoryPanel = ({ documentId, onClose }: Props) => {
   const createVersion = useMutation(api.documents.createVersion);
 
   const [versionName, setVersionName] = useState("");
-  const [selectedVersion, setSelectedVersion] = useState<Doc<"document_versions"> | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [selectedVersion, setSelectedVersion] = useState<any | null>(null);
   
-  // ✅ NEW: Tab State for toggling lists
   const [activeTab, setActiveTab] = useState<"manual" | "auto">("manual");
 
   const others = useOthers();
@@ -50,33 +57,48 @@ export const VersionHistoryPanel = ({ documentId, onClose }: Props) => {
 
   const previewEditor = useEditor({
     editable: false,
-    extensions: [StarterKit],
+    extensions: [
+      StarterKit,
+      ImageResize,
+      Table,
+      TableCell,
+      TableHeader,
+      TableRow,
+      TaskList,
+      TaskItem.configure({ nested: true }),
+    ],
     content: "",
   });
 
   useEffect(() => {
     if (previewEditor && selectedVersion?.content) {
-      previewEditor.commands.setContent(selectedVersion.content);
+      try {
+        const parsedContent = typeof selectedVersion.content === "string" 
+            ? JSON.parse(selectedVersion.content) 
+            : selectedVersion.content;
+            
+        previewEditor.commands.setContent(parsedContent);
+      } catch (err) {
+        console.error("Failed to parse version content:", err);
+      }
     }
   }, [selectedVersion, previewEditor]);
 
   if (!versions) return null;
 
-  // ✅ NEW: Filter versions based on type
-  const manualVersions = versions.filter((v) => !v.isAuto);
-  const autoVersions = versions.filter((v) => v.isAuto);
+  // 🔥 FIX: Added explicit typing to the map/filter functions
+  const manualVersions = versions.filter((v: Doc<"document_versions">) => !v.isAuto);
+  const autoVersions = versions.filter((v: Doc<"document_versions">) => v.isAuto);
   const displayVersions = activeTab === "manual" ? manualVersions : autoVersions;
 
   return (
     <>
-      {/* MAIN POPUP */}
       <Dialog open={true} onOpenChange={onClose}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Version History</DialogTitle>
           </DialogHeader>
 
-          {/* SAVE VERSION (Only show on Manual Tab) */}
           {activeTab === "manual" && (
             <div className="space-y-2">
               <Input
@@ -94,16 +116,13 @@ export const VersionHistoryPanel = ({ documentId, onClose }: Props) => {
 
                   await createVersion({
                     documentId,
-                    content: editor.getJSON(),
+                    content: JSON.stringify(editor.getJSON()),
                     versionName,
-                    isAuto: false, // Explicitly manual
+                    isAuto: false,
                   });
 
                   setVersionName("");
-                  
-                  // 🔥 FIX 4: Fire the event to reset Auto-Save counters in Editor.tsx!
                   window.dispatchEvent(new Event("manual-save-triggered"));
-
                   toast.success("Version saved");
                 }}
                 className="w-full"
@@ -113,7 +132,6 @@ export const VersionHistoryPanel = ({ documentId, onClose }: Props) => {
             </div>
           )}
 
-          {/* ✅ NEW: TABS UI */}
           <div className="flex gap-2 mt-4 bg-gray-100 p-1 rounded-md">
             <button
               onClick={() => setActiveTab("manual")}
@@ -133,14 +151,13 @@ export const VersionHistoryPanel = ({ documentId, onClose }: Props) => {
             </button>
           </div>
 
-          {/* VERSION LIST */}
           <div className="max-h-[200px] min-h-[150px] overflow-auto space-y-2 mt-2">
             {displayVersions.length === 0 ? (
               <p className="text-center text-sm text-muted-foreground pt-4">
                 No {activeTab} versions found.
               </p>
             ) : (
-              displayVersions.map((v) => (
+              displayVersions.map((v: Doc<"document_versions">) => (
                 <div
                   key={v._id}
                   className="border p-2 rounded cursor-pointer hover:bg-gray-100 flex flex-col"
@@ -156,11 +173,9 @@ export const VersionHistoryPanel = ({ documentId, onClose }: Props) => {
                       </span>
                     )}
                   </div>
-
                   <p className="text-xs text-muted-foreground mt-1">
                     {new Date(v.createdAt).toLocaleString()}
                   </p>
-
                   <p className="text-xs text-gray-500">by {v.createdBy}</p>
                 </div>
               ))
@@ -169,7 +184,6 @@ export const VersionHistoryPanel = ({ documentId, onClose }: Props) => {
         </DialogContent>
       </Dialog>
 
-      {/* PREVIEW POPUP */}
       {selectedVersion && (
         <Dialog open={true} onOpenChange={() => setSelectedVersion(null)}>
           <DialogContent className="max-w-3xl">
@@ -179,7 +193,6 @@ export const VersionHistoryPanel = ({ documentId, onClose }: Props) => {
               </DialogTitle>
             </DialogHeader>
 
-            {/* METADATA */}
             <div className="text-sm text-muted-foreground space-y-1 mb-3 flex gap-4">
               <p><b>Version:</b> {selectedVersion.versionNumber}</p>
               <p><b>Created By:</b> {selectedVersion.createdBy}</p>
@@ -189,8 +202,7 @@ export const VersionHistoryPanel = ({ documentId, onClose }: Props) => {
               </p>
             </div>
 
-            {/* PREVIEW */}
-            <div className="border p-4 max-h-[400px] overflow-auto bg-white rounded">
+            <div className="border p-4 max-h-[400px] overflow-auto bg-white rounded tiptap">
               {previewEditor && <EditorContent editor={previewEditor} />}
             </div>
 
@@ -209,28 +221,17 @@ export const VersionHistoryPanel = ({ documentId, onClose }: Props) => {
                     return;
                   }
 
-                  const contentSize = JSON.stringify(selectedVersion.content).length;
-
-                  if (contentSize > 50000) {
-                    const confirmLarge = confirm(
-                      "⚠️ This version is large and will be appended to your document.\nIt may affect performance.\nDo you want to continue?"
-                    );
-                    if (!confirmLarge) return;
-                  }
+                  const rawContent = typeof selectedVersion.content === "string" 
+                      ? JSON.parse(selectedVersion.content) 
+                      : selectedVersion.content;
 
                   if (hasOtherUsers) {
                     const confirmUsers = confirm(
                       "⚠️ Other users are editing this document.\nThis will APPEND content at the End.\nDo you want to continue?"
                     );
                     if (!confirmUsers) return;
-                  } else {
-                    const confirmFinal = confirm(
-                      "This will INSERT the selected version into your document.\nExisting content will NOT be replaced.\n\nContinue?"
-                    );
-                    if (!confirmFinal) return;
                   }
 
-                  // ✅ SAFE INSERT
                   editor
                     .chain()
                     .focus()
@@ -244,7 +245,7 @@ export const VersionHistoryPanel = ({ documentId, onClose }: Props) => {
                           },
                         ],
                       },
-                      selectedVersion.content,
+                      rawContent,
                       {
                         type: "paragraph",
                         content: [

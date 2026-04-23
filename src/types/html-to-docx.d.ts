@@ -3,6 +3,16 @@ declare module "html-to-docx" {
     table?: { row?: { cantSplit?: boolean } };
     footer?: boolean;
     pageNumber?: boolean;
+    // 🔥 FIX: Added the missing margins type definition
+    margins?: {
+      top?: number;
+      right?: number;
+      bottom?: number;
+      left?: number;
+      header?: number;
+      footer?: number;
+      gutter?: number;
+    };
   }
 
   function HTMLtoDOCX(

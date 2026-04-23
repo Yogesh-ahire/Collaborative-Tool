@@ -22,6 +22,17 @@ import StarterKit from "@tiptap/starter-kit";
 
 import { JSONContent } from "@/types/editor";
 
+// import { Editor } from "@tiptap/core";
+// import StarterKit from "@tiptap/starter-kit";
+// import { Editor } from "@tiptap/core";
+// import StarterKit from "@tiptap/starter-kit";
+import Image from "@tiptap/extension-image"; // 🔥 Use standard Image for parsing
+import Table from "@tiptap/extension-table";
+import TableCell from "@tiptap/extension-table-cell";
+import TableHeader from "@tiptap/extension-table-header";
+import TableRow from "@tiptap/extension-table-row";
+import TaskItem from "@tiptap/extension-task-item";
+import TaskList from "@tiptap/extension-task-list";
 export const TemplatesGallery = () => {
   const router = useRouter();
   const create = useMutation(api.documents.create);
@@ -35,13 +46,26 @@ export const TemplatesGallery = () => {
   // ✅ ONLY used for DOCX import
   const convertHtmlToJson = (html: string): JSONContent => {
     const editor = new Editor({
-      extensions: [StarterKit],
+      extensions: [
+        StarterKit,
+        Image.configure({
+          allowBase64: true, // 🔥 THIS STOPS TIPTAP FROM DELETING THE IMAGE
+        }),
+        Table,
+        TableCell,
+        TableHeader,
+        TableRow,
+        TaskList,
+        TaskItem.configure({
+          nested: true,
+        }),
+      ],
       content: html,
     });
 
     return editor.getJSON() as JSONContent;
   };
-
+  
   // ✅ CLEAN: JSON only (no string anymore)
   const onTemplateClick = async (
     title: string,

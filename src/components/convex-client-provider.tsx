@@ -1,7 +1,6 @@
-"use client";
-
+"use client"
 import { ReactNode } from "react";
-import { ClerkProvider, useAuth,/* SignIn*/ } from "@clerk/nextjs";
+import { ClerkProvider, useAuth } from "@clerk/nextjs";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { ConvexReactClient, Authenticated, Unauthenticated, AuthLoading } from "convex/react";
 import { FullscreenLoader } from "./fullscreen-loader";
@@ -13,7 +12,8 @@ export function ConvexClientProvider({ children }: { children: ReactNode }) {
   return (
     <ClerkProvider publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY!}>
       <ConvexProviderWithClerk 
-        useAuth={useAuth} 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        useAuth={useAuth as any} 
         client={convex}
       >
         <Authenticated>
@@ -21,9 +21,6 @@ export function ConvexClientProvider({ children }: { children: ReactNode }) {
         </Authenticated>
         <Unauthenticated>
           <IntroPage />
-          {/* <div className="flex flex-col items-center justify-center min-h-screen">
-            <SignIn routing="hash"/>
-          </div> */}
          </Unauthenticated>
          <AuthLoading>
             <FullscreenLoader label="Auth loading..." />
@@ -31,4 +28,4 @@ export function ConvexClientProvider({ children }: { children: ReactNode }) {
       </ConvexProviderWithClerk>
     </ClerkProvider>
   )
-};
+}

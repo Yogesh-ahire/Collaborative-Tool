@@ -34,13 +34,14 @@ import {
 } from "@/constants/margins";
 
 import { Editor as TiptapEditor } from "@tiptap/core";
-import { Transaction } from "@tiptap/pm/state"; // ✅ FIX: Added correct type import
+import { Transaction } from "@tiptap/pm/state";
 
 import { JSONContent } from "@/types/editor";
 
 import { useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { Id } from "../../../../convex/_generated/dataModel";
+import { toast } from "sonner";
 
 declare global {
   interface Window {
@@ -183,14 +184,9 @@ export const Editor = ({ initialContent, documentId }: EditorProps) => {
   useEffect(() => {
     if (!editor) return;
 
-    // ✅ FIX: Replaced 'any' with the correct 'Transaction' type
     const handleUpdate = ({ transaction }: { transaction: Transaction }) => {
-      // 1. Ignore if no actual content changed
       if (!transaction.docChanged) return;
 
-      // 2. 🔥 THE RACE CONDITION FIX: 
-      // If the change came from Liveblocks (another user), ignore it. 
-      // Only the user actively typing should trigger their local auto-save timer.
       if (transaction.getMeta("liveblocks")) return;
 
       pendingChanges.current++;
@@ -210,16 +206,25 @@ export const Editor = ({ initialContent, documentId }: EditorProps) => {
         if (shouldSaveBySteps || shouldSaveByTime) {
           if (!editor) return;
 
-          await createVersion({
-            documentId,
-            content: editor.getJSON(),
-            isAuto: true,
-          });
+          try {
+            await createVersion({
+              documentId,
+              // 🔥 FIX: Stringify payload on the client so Convex network wrapper doesn't panic
+              content: JSON.stringify(editor.getJSON()),
+              isAuto: true,
+            });
 
-          pendingChanges.current = 0;
-          lastSaveTime.current = now;
+            pendingChanges.current = 0;
+            lastSaveTime.current = now;
 
-          console.log("✅ Auto version saved by active user");
+            console.log("✅ Auto version saved by active user");
+          } catch (error) {
+            console.error("Auto-save failed:", error);
+            
+            if (error instanceof Error && error.message.includes("too nested")) {
+              toast.error("Document formatting is too complex (tables inside tables). Please simplify to enable auto-saving.");
+            }
+          }
         }
       }, IDLE_TIME);
     };

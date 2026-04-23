@@ -197,7 +197,8 @@ export const getById = query({
 export const createVersion = mutation({
   args: {
     documentId: v.id("documents"),
-    content: v.any(),
+    // 🔥 FIX: Taking string payload from the client to skip network validation crashes
+    content: v.string(),
     versionName: v.optional(v.string()),
     isAuto: v.optional(v.boolean()),
   },
@@ -205,7 +206,6 @@ export const createVersion = mutation({
     const user = await ctx.auth.getUserIdentity();
     if (!user) throw new ConvexError("Unauthorized");
 
-    // 🔢 Get latest version number FAST
     const latest = await ctx.db
       .query("document_versions")
       .withIndex("by_document_version", (q) =>
@@ -216,7 +216,6 @@ export const createVersion = mutation({
 
     const versionNumber = latest ? latest.versionNumber + 1 : 1;
 
-    // ✅ Insert version
     const inserted = await ctx.db.insert("document_versions", {
       documentId,
       content,
@@ -227,7 +226,6 @@ export const createVersion = mutation({
       isAuto: isAuto ?? false,
     });
 
-    // 🧹 AUTO PRUNING (ONLY for auto versions)
     if (isAuto) {
       const autos = await ctx.db
         .query("document_versions")
@@ -237,7 +235,6 @@ export const createVersion = mutation({
         .order("desc")
         .collect();
 
-      // keep last 15 auto versions
       const MAX_AUTO = 15;
 
       if (autos.length > MAX_AUTO) {
