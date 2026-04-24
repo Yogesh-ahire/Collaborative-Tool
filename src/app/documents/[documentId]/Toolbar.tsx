@@ -10,14 +10,12 @@ import {
     BoldIcon,
     ChevronDownIcon,
     HighlighterIcon,
-    // ImageIcon,
     ItalicIcon,
     Link2Icon,
     ListCollapseIcon,
     ListIcon,
     ListOrderedIcon,
     ListTodoIcon,
-    // LoaderIcon,
     LucideIcon,
     MessageSquarePlusIcon,
     MinusIcon,
@@ -25,11 +23,10 @@ import {
     PrinterIcon,
     Redo2Icon,
     RemoveFormattingIcon,
-    // SearchIcon,
     SpellCheckIcon,
     UnderlineIcon,
     Undo2Icon,
-    // UploadIcon
+    HistoryIcon, // 🔥 ADDED HistoryIcon
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEditorStore } from "@/store/use-editor-store";
@@ -39,25 +36,9 @@ import {
     DropdownMenuContent,
     DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
-// import {
-//     Dialog,
-//     DialogContent,
-//     DialogFooter,
-//     DialogHeader,
-//     DialogTitle
-// } from '@/components/ui/dialog';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-// import { DropdownMenuItem } from "@radix-ui/react-dropdown-menu";
-// import AIDialog from "@/components/ai/ai-dialog"
 import { Sparkles } from "lucide-react";
-// import AIAssistButton from "@/components/ai/ai-assist-button"
-
-// import { useImageUpload } from "@/hooks/use-image-upload";
-//version histroy
-// import { useMutation } from "convex/react";
-// import { api } from "../../../../convex/_generated/api";
-// import { Id } from "../../../../convex/_generated/dataModel";
 
 /*line height */
 const LineHeightButton = () => {
@@ -287,113 +268,6 @@ const AlignButton = () => {
         </DropdownMenu>
     )
 };
-
-/*image button */
-// const ImageButton = () => {
-//   const { editor } = useEditorStore();
-//   const { uploadImage } = useImageUpload();
-
-//   const [isDialogOpen, setIsDialogOpen] = useState(false);
-//   const [imageUrl, setImageUrl] = useState("");
-//   const [isUploading, setIsUploading] = useState(false);
-
-//   const onChange = (src: string) => {
-//     if (!editor || !src) return;
-//     editor.chain().focus().setImage({ src }).run();
-//   };
-
-//   // ✅ FINAL FIX (ONLY REAL UPLOAD)
-//   const onUpload = () => {
-//     const input = document.createElement("input");
-//     input.type = "file";
-//     input.accept = "image/*";
-
-//     input.onchange = async (e) => {
-//       const file = (e.target as HTMLInputElement).files?.[0];
-//       if (!file) return;
-
-//       try {
-//         setIsUploading(true);
-
-//         // 🔥 THIS IS THE ONLY VALID FLOW
-//         const uploadedUrl = await uploadImage(file);
-
-//         if (!uploadedUrl) throw new Error("Upload failed");
-
-//         // ✅ insert REAL URL (not blob)
-//         onChange(uploadedUrl);
-
-//       } catch (err) {
-//         console.error("Upload failed:", err);
-//         alert("Image upload failed");
-//       } finally {
-//         setIsUploading(false);
-//       }
-//     };
-
-//     input.click();
-//   };
-
-//   const handleImageUrlSubmit = () => {
-//     const trimmed = imageUrl.trim();
-//     if (!trimmed) return;
-
-//     onChange(trimmed);
-//     setImageUrl("");
-//     setIsDialogOpen(false);
-//   };
-
-//   return (
-//     <>
-//       <DropdownMenu>
-//         <DropdownMenuTrigger asChild>
-//           <button className="h-7 min-w-7 flex items-center justify-center hover:bg-neutral-200/80 rounded-sm">
-//             {isUploading ? (
-//               <LoaderIcon className="size-4 animate-spin" />
-//             ) : (
-//               <ImageIcon className="size-4" />
-//             )}
-//           </button>
-//         </DropdownMenuTrigger>
-
-//         <DropdownMenuContent>
-//           <DropdownMenuItem onClick={onUpload} disabled={isUploading}>
-//             <UploadIcon className="size-4 mr-2" />
-//             Upload
-//           </DropdownMenuItem>
-
-//           <DropdownMenuItem onClick={() => setIsDialogOpen(true)}>
-//             <SearchIcon className="size-4 mr-2" />
-//             Paste Image URL
-//           </DropdownMenuItem>
-//         </DropdownMenuContent>
-//       </DropdownMenu>
-
-//       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-//         <DialogContent>
-//           <DialogHeader>
-//             <DialogTitle>Insert Image URL</DialogTitle>
-//           </DialogHeader>
-
-//           <Input
-//             placeholder="https://example.com/image.png"
-//             value={imageUrl}
-//             onChange={(e) => setImageUrl(e.target.value)}
-//             onKeyDown={(e) => {
-//               if (e.key === "Enter") handleImageUrlSubmit();
-//             }}
-//           />
-
-//           <DialogFooter>
-//             <Button onClick={handleImageUrlSubmit}>
-//               Insert
-//             </Button>
-//           </DialogFooter>
-//         </DialogContent>
-//       </Dialog>
-//     </>
-//   );
-// };
 
 /*Link Button */
 const LinkButton = () => {
@@ -661,6 +535,12 @@ export const Toolbar = ({ onAiClick }: ToolbarProps) => {
                         const current = editor?.view.dom.getAttribute("spellcheck");
                         editor?.view.dom.setAttribute("spellcheck", current === "false" ? "true" : "false");
                     },
+                },
+                // 🔥 ADDED VERSION HISTORY BUTTON
+                {
+                    label: "Version History",
+                    icon: HistoryIcon,
+                    onClick: () => window.dispatchEvent(new CustomEvent("open-version-history")),
                 },
             ],
             [

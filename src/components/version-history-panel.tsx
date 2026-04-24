@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-// 🔥 FIX: Imported from "convex/react", NOT "react"
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Id, Doc } from "../../convex/_generated/dataModel";
@@ -26,6 +25,17 @@ import TableHeader from "@tiptap/extension-table-header";
 import TableRow from "@tiptap/extension-table-row";
 import TaskItem from "@tiptap/extension-task-item";
 import TaskList from "@tiptap/extension-task-list";
+
+// 🔥 FIX: Imported all missing rich-text extensions to prevent blank previews
+import TextAlign from "@tiptap/extension-text-align";
+import { Color } from "@tiptap/extension-color";
+import Highlight from "@tiptap/extension-highlight";
+import FontFamily from "@tiptap/extension-font-family";
+import TextStyle from "@tiptap/extension-text-style";
+import { Underline } from "@tiptap/extension-underline";
+import Link from "@tiptap/extension-link";
+import { FontSizeExtension } from "@/extensions/font-size";
+import { LineHeightExtension } from "@/extensions/line-height";
 
 import { Editor } from "@tiptap/core";
 import { toast } from "sonner";
@@ -66,6 +76,16 @@ export const VersionHistoryPanel = ({ documentId, onClose }: Props) => {
       TableRow,
       TaskList,
       TaskItem.configure({ nested: true }),
+      // 🔥 FIX: Registered all extensions here so Tiptap doesn't drop formatted text
+      TextAlign.configure({ types: ["heading", "paragraph"] }),
+      Color,
+      Highlight.configure({ multicolor: true }),
+      FontFamily,
+      TextStyle,
+      Underline,
+      Link.configure({ openOnClick: false, defaultProtocol: "https" }),
+      FontSizeExtension,
+      LineHeightExtension.configure({ types: ["heading", "paragraph"], defaultLineHeight: "normal" }),
     ],
     content: "",
   });
@@ -86,7 +106,6 @@ export const VersionHistoryPanel = ({ documentId, onClose }: Props) => {
 
   if (!versions) return null;
 
-  // 🔥 FIX: Added explicit typing to the map/filter functions
   const manualVersions = versions.filter((v: Doc<"document_versions">) => !v.isAuto);
   const autoVersions = versions.filter((v: Doc<"document_versions">) => v.isAuto);
   const displayVersions = activeTab === "manual" ? manualVersions : autoVersions;
@@ -232,6 +251,9 @@ export const VersionHistoryPanel = ({ documentId, onClose }: Props) => {
                     if (!confirmUsers) return;
                   }
 
+                  // 🔥 FIX: Extract the actual content array to prevent nested document crashing
+                  const contentToInsert = rawContent.type === "doc" ? rawContent.content : rawContent;
+
                   editor
                     .chain()
                     .focus()
@@ -245,7 +267,7 @@ export const VersionHistoryPanel = ({ documentId, onClose }: Props) => {
                           },
                         ],
                       },
-                      rawContent,
+                      ...(Array.isArray(contentToInsert) ? contentToInsert : [contentToInsert]),
                       {
                         type: "paragraph",
                         content: [

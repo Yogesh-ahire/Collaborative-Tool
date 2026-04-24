@@ -2,110 +2,86 @@ import { NextResponse } from "next/server";
 
 const ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
 
+type Message = {
+  role: "system" | "user" | "assistant";
+  content: string;
+};
+
 export async function POST(req: Request) {
   try {
-    const { text, action, context } = await req.json();
+    const { text, action, context, modifier, contextType, history } = await req.json();
 
-    // fallback if context not provided
     const docContext = context || "";
-
-    let prompt = "";
-
-    // 🔹 COMMON SYSTEM RULE (VERY IMPORTANT)
-    const systemInstruction = `
-You are an AI assistant inside a professional document editor.
-
-STRICT RULES (DO NOT BREAK):
-
-1. ALWAYS return clean HTML
-2. NEVER use markdown (no **, no ##, no -)
-3. NEVER return plain text
-4. NEVER include \`\`\`
-5. DO NOT include <html>, <body>
-
-FORMATTING RULES:
-- Paragraph → <p>
-- Headings → <h2> or <h3>
-- Lists → <ul><li>
-- Bold → <strong>
-
-STYLE:
-- Keep professional formatting
-- Match document tone
-- Keep spacing clean
-
-EXAMPLE OUTPUT:
-<h3>History of New Delhi</h3>
-<p>New Delhi has a rich history...</p>
-
-<ul>
-  <li>India Gate...</li>
-  <li>Red Fort...</li>
-</ul>
-`;
-
-    // 🔹 ACTION BASED PROMPTS
-
-    if (action === "summarize") {
-      prompt = `
-${systemInstruction}
-
-Task:
-Summarize the following content.
-
-Document Style Reference:
-${docContext}
-
-Content:
-${text}
-`;
-    }
-
-    if (action === "rewrite") {
-      prompt = `
-${systemInstruction}
-
-Task:
-Rewrite the following content in clearer and better English.
-
-Document Style Reference:
-${docContext}
-
-Content:
-${text}
-`;
-    }
+    let apiMessages: Message[] = [];
+    let temperature = 0.3; // Default
 
     if (action === "qa") {
-      prompt = `
-${systemInstruction}
+      // 🧠 BRAIN 1: CONVERSATIONAL CHAT ASSISTANT
+      temperature = 0.6; 
+      
+      const chatInstruction = `
+You are "DoczFlow AI", a highly intelligent, concise, and friendly assistant integrated into the DoczFlow document editor.
 
-Task:
-Answer the user's question using:
-1. The document (if relevant)
-2. Your general knowledge (if needed)
+CRITICAL BEHAVIOR RULES:
+1. IDENTITY: You are an AI assistant. Be conversational and natural. Do NOT use clunky phrases like "I exist in the digital realm" or "I am just a computer program". Talk like a helpful, normal colleague.
+2. CONTEXT SEPARATION: Do NOT blindly summarize the document just because the user mentions keywords. If the user asks a casual question (e.g., "how are you", "hello"), reply casually and briefly. 
+3. DOCUMENT USAGE: ONLY extract information from the "Document Context" if the user EXPLICITLY asks a question about the document's content, text, or data.
 
-Document:
+UI FORMATTING RULES:
+1. You MUST format your responses using basic HTML tags (e.g., <p>, <strong>, <em>, <ul>, <li>).
+2. NEVER use markdown (no **, no ##).
+3. Do NOT wrap your response in \`\`\`html blocks.
+
+CONTEXTUAL AWARENESS:
+The user is currently looking at this content (Type: ${contextType || "Document"}):
+"""
 ${docContext}
-
-User Question:
-${text}
+"""
 `;
-    }
+      apiMessages.push({ role: "system", content: chatInstruction });
 
-    if (action === "generate") {
-      prompt = `
-${systemInstruction}
+      // Load previous conversation memory
+      if (history && Array.isArray(history)) {
+        history.forEach((msg) => {
+           apiMessages.push({
+             role: msg.role === "ai" ? "assistant" : "user",
+             content: msg.text
+           });
+        });
+      }
 
-Task:
-Generate content based on the user's request.
+      // Add the current user message
+      apiMessages.push({ role: "user", content: text });
 
-Document Style Reference:
-${docContext}
+    } else {
+      // 🤖 BRAIN 2: STRICT EDITOR ROBOT (Bubble Menu)
+      temperature = 0.2; // Highly deterministic
+      
+      const editorInstruction = `
+You are a strict, automated text-processing engine integrated into a rich text editor.
 
-User Prompt:
-${text}
-`;
+CRITICAL ARCHITECTURAL RULE:
+You MUST preserve the EXACT HTML tag structure provided. ONLY modify the text nodes INSIDE the tags.
+
+STRICT OUTPUT RULES:
+1. Output ONLY valid HTML.
+2. NO markdown formatting whatsoever.
+3. NO conversational filler (e.g., "Here is the corrected text:"). Speak ONLY in the requested output.
+4. RETURN MINIFIED HTML. Do NOT include ANY newlines (\\n) or extra spaces between tags.`;
+
+      let taskInstruction = "";
+      if (action === "grammar") {
+        taskInstruction = `Task: Fix the grammar and spelling. Do not change the original meaning.\nReturn ONLY the corrected HTML.\nInput HTML: ${text}`;
+      } else if (action === "tone") {
+        taskInstruction = `Task: Rewrite the text in a ${modifier} tone.\nReturn ONLY the rewritten HTML. Ensure bullet points remain bullet points.\nInput HTML: ${text}`;
+      } else if (action === "translate") {
+        taskInstruction = `Task: Translate the text into ${modifier}.\nReturn ONLY the translated HTML.\nInput HTML: ${text}`;
+      }
+
+      apiMessages = [
+        { role: "system", content: editorInstruction },
+        { role: "user", content: taskInstruction }
+      ];
     }
 
     // 🔹 API CALL
@@ -116,21 +92,14 @@ ${text}
         Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "llama-3.1-8b-instant", // faster + good for editor
-        messages: [
-          {
-            role: "user",
-            content: prompt,
-          },
-        ],
-        temperature: 0.7,
-        max_tokens: 800,
+        model: "llama-3.1-8b-instant",
+        messages: apiMessages,
+        temperature: temperature,
+        max_tokens: 1500,
       }),
     });
 
     const data = await response.json();
-
-    console.log("Groq response:", data);
 
     if (!response.ok) {
       return NextResponse.json(
@@ -141,24 +110,18 @@ ${text}
 
     let result = data.choices?.[0]?.message?.content ?? "";
 
-    // 🔹 SAFETY: Ensure valid HTML fallback
-    if (!result.trim().startsWith("<")) {
-      result = result
-        .split("\n")
-        .map((p: string) => `<p>${p}</p>`)
-        .join("");
+    // CLEANUP: Always strip markdown code blocks if AI hallucinates them
+    result = result.replace(/```html\n?/gi, "").replace(/```\n?/gi, "");
+
+    // STRICT CLEANUP FOR EDITOR (Bubble Menu only - Do NOT minify chat)
+    if (action !== "qa") {
+      result = result.replace(/\n/g, "");
+      result = result.replace(/>\s+</g, "><");
     }
 
-    return NextResponse.json({
-      result,
-    });
-
+    return NextResponse.json({ result: result.trim() });
   } catch (error) {
     console.error("AI API error:", error);
-
-    return NextResponse.json(
-      { error: "Server AI error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Server AI error" }, { status: 500 });
   }
 }

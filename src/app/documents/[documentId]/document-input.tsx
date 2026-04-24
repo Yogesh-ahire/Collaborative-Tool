@@ -1,6 +1,6 @@
 import { BsCloudCheck, BsCloudSlash } from "react-icons/bs";
 import { Id } from "../../../../convex/_generated/dataModel";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react"; // 🔥 ADDED useEffect
 import { useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { toast } from "sonner";
@@ -27,6 +27,13 @@ export const DocumentInput = ({ title, id }: DocumentInputProps) => {
     const mutate = useMutation(api.documents.updateById);
 
     const [openVersion, setOpenVersion] = useState(false);
+
+    // 🔥 THE FIX: Listen for the Toolbar button click
+    useEffect(() => {
+        const handleOpenHistory = () => setOpenVersion(true);
+        window.addEventListener("open-version-history", handleOpenHistory);
+        return () => window.removeEventListener("open-version-history", handleOpenHistory);
+    }, []);
 
     const debouncedUpdate = useDebounce((newValue: string) => {
         if (newValue === title) return;
