@@ -290,8 +290,8 @@ export const IntroPage = () => {
           height={24}
           className="opacity-50 grayscale hover:grayscale-0 hover:opacity-100 transition duration-300 mb-3"
         />
-        <p>© {new Date().getFullYear()} DoczFlow AI Ecosystem.</p>
-        <p className="text-[10px] sm:text-xs mt-1">Built with Next.js, Convex, Tiptap & Liveblocks</p>
+        <p>© {new Date().getFullYear()} DoczFlow - AI Powered Collaborative Ecosystem.</p>
+        <p className="text-[10px] sm:text-xs mt-1">Built with Next.js, Convex, Tiptap, Groq & Liveblocks</p>
       </footer>
     </div>
   );
