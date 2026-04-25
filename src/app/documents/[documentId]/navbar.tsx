@@ -16,6 +16,7 @@ import {
     Redo2Icon,
     RemoveFormattingIcon,
     SearchIcon,
+    Share2Icon,
     StrikethroughIcon,
     TableIcon,
     TextIcon,
@@ -88,6 +89,10 @@ export const Navbar = ({ data }: NavbarProps) => {
     const [imageUrl, setImageUrl] = useState("");
     const [isUploading, setIsUploading] = useState(false);
 
+    //sahre states
+    const [shareLink, setShareLink] = useState(""); 
+    const generateLink = useMutation(api.documents.generateShareLink);
+
     const onNewDocument = () => {
         mutation({
             title: "Untitled document",
@@ -132,12 +137,12 @@ export const Navbar = ({ data }: NavbarProps) => {
             try {
                 setIsUploading(true);
                 const uploadedUrl = await uploadImage(file);
-                
+
                 if (!uploadedUrl) throw new Error("Upload failed");
-                
+
                 // Insert into editor
                 if (editor) editor.chain().focus().setImage({ src: uploadedUrl }).run();
-                
+
                 // 🔥 FIX: Turn the loading toast into a success message
                 toast.success("Image uploaded successfully!", { id: toastId });
             } catch (err) {
@@ -191,12 +196,12 @@ export const Navbar = ({ data }: NavbarProps) => {
         onDownload(blob, `${data.title}.txt`);
     }
 
-   const onSaveDocx = async () => {
+    const onSaveDocx = async () => {
         if (!editor) return;
-        
+
         // 🔥 FIX: Start a loading toast that blocks the user from thinking it's broken
-        const toastId = toast.loading("Exporting document to DOCX. Please wait..."); 
-        
+        const toastId = toast.loading("Exporting document to DOCX. Please wait...");
+
         try {
             const html = editor.getHTML();
             const res = await fetch("/api/export-docx", {
@@ -204,18 +209,18 @@ export const Navbar = ({ data }: NavbarProps) => {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ html }),
             });
-            
+
             if (!res.ok) throw new Error();
-            
+
             const blob = await res.blob();
             onDownload(blob, `${data.title}.docx`);
-            
+
             // 🔥 FIX: Update the toast to success!
-            toast.success("Document exported successfully!", { id: toastId }); 
+            toast.success("Document exported successfully!", { id: toastId });
         } catch (err) {
             console.error(err);
             // 🔥 FIX: Update the toast to error
-            toast.error("DOCX export failed. Try again.", { id: toastId }); 
+            toast.error("DOCX export failed. Try again.", { id: toastId });
         }
     };
 
@@ -331,24 +336,24 @@ export const Navbar = ({ data }: NavbarProps) => {
                                                     <div className="flex flex-col gap-1.5 mt-1" onClick={(e) => e.stopPropagation()}>
                                                         <p className="text-[11px] font-medium text-muted-foreground px-1">Custom Size</p>
                                                         <div className="flex items-center gap-2">
-                                                            <Input 
-                                                                type="number" 
-                                                                min={1} 
-                                                                value={customRows} 
+                                                            <Input
+                                                                type="number"
+                                                                min={1}
+                                                                value={customRows}
                                                                 onChange={(e) => setCustomRows(Number(e.target.value) || 1)}
-                                                                className="h-7 w-14 text-xs" 
+                                                                className="h-7 w-14 text-xs"
                                                             />
                                                             <span className="text-xs text-muted-foreground">x</span>
-                                                            <Input 
-                                                                type="number" 
-                                                                min={1} 
-                                                                value={customCols} 
+                                                            <Input
+                                                                type="number"
+                                                                min={1}
+                                                                value={customCols}
                                                                 onChange={(e) => setCustomCols(Number(e.target.value) || 1)}
-                                                                className="h-7 w-14 text-xs" 
+                                                                className="h-7 w-14 text-xs"
                                                             />
-                                                            <Button 
-                                                                size="sm" 
-                                                                className="h-7 px-2 text-xs" 
+                                                            <Button
+                                                                size="sm"
+                                                                className="h-7 px-2 text-xs"
                                                                 onClick={() => handleInsertTable(customRows, customCols)}
                                                             >
                                                                 Add
@@ -425,6 +430,26 @@ export const Navbar = ({ data }: NavbarProps) => {
                 </div>
                 <div className="flex gap-3 items-center pl-6">
                     <Avatars />
+
+                    {/* 🔥 SHARE BUTTON HERE */}
+                    <Button
+                        size="sm"
+                        className="bg-blue-600 hover:bg-blue-700 text-white font-medium h-8"
+                        onClick={async () => {
+                            try {
+                                const token = await generateLink({ documentId: data._id });
+                                const url = `${window.location.origin}/share/${token}`;
+                                setShareLink(url);
+                            } catch (e) {
+                                console.log(e);
+                                toast.error("Could not generate share link.");
+                            }
+                        }}
+                    >
+                        <Share2Icon className="size-4 mr-1.5" />
+                        Share
+                    </Button>
+
                     <Inbox />
                     <OrganizationSwitcher
                         afterCreateOrganizationUrl="/"
@@ -457,6 +482,29 @@ export const Navbar = ({ data }: NavbarProps) => {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            {shareLink && (
+                <Dialog open onOpenChange={() => setShareLink("")}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Share Link</DialogTitle>
+                        </DialogHeader>
+
+                        <Input value={shareLink} readOnly />
+
+                        <DialogFooter>
+                            <Button
+                                onClick={() => {
+                                    navigator.clipboard.writeText(shareLink);
+                                    toast.success("Copied!");
+                                }}
+                            >
+                                Copy
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+            )}
         </>
     );
 };

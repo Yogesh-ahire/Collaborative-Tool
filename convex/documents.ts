@@ -290,3 +290,45 @@ export const restoreVersion = mutation({
     };
   },
 });
+
+//share link
+// 🔥 ADD THESE TO THE VERY END OF convex/documents.ts
+export const generateShareLink = mutation({
+  args: { documentId: v.id("documents") },
+  handler: async (ctx, { documentId }) => {
+    const user = await ctx.auth.getUserIdentity();
+    if (!user) throw new ConvexError("Unauthorized");
+
+    const doc = await ctx.db.get(documentId);
+    if (!doc) throw new ConvexError("Not found");
+
+    if (doc.ownerId !== user.subject) {
+      throw new ConvexError("Not allowed");
+    }
+
+    const token = crypto.randomUUID();
+
+    await ctx.db.patch(documentId, {
+      shareToken: token,
+      isPublic: true,
+    });
+
+    return token;
+  },
+});
+
+export const getByShareToken = query({
+  args: { token: v.string() },
+  handler: async (ctx, { token }) => {
+    const doc = await ctx.db
+      .query("documents")
+      .filter((q) => q.eq(q.field("shareToken"), token))
+      .first();
+
+    if (!doc || !doc.isPublic) {
+      return null; // Return null instead of error to prevent Next.js client crashes
+    }
+
+    return doc;
+  },
+});

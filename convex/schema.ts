@@ -8,6 +8,9 @@ export default defineSchema({
     ownerId: v.string(),
     roomId: v.optional(v.string()),
     organizationId: v.optional(v.string()),
+    // 🔥 ADDED THESE BACK FOR SHARE FEATURE
+    shareToken: v.optional(v.string()),
+    isPublic: v.optional(v.boolean()),
   })
     .index("by_owner_id", ["ownerId"])
     .index("by_organization_id", ["organizationId"])
@@ -19,7 +22,6 @@ export default defineSchema({
   //version table
   document_versions: defineTable({
     documentId: v.id("documents"),
-    // 🔥 FIX: Changed to strict string to completely bypass Convex nesting limits
     content: v.string(),
     createdBy: v.string(),
     createdAt: v.number(),
