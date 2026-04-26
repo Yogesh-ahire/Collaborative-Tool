@@ -4,10 +4,15 @@ import { useEffect, useState } from "react";
 import { SignIn } from "@clerk/nextjs";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, Users, FileText, Brain, History, Database, Network, Cpu, ArrowRight } from "lucide-react";
+import { 
+  Users, FileText,
+  Database, Network, Cpu, ArrowRight, PieChart, 
+  MousePointer2, SearchCode, XIcon, Sparkles,
+  History,
+  Brain
+} from "lucide-react";
 
 export const IntroPage = () => {
-  // State to toggle the SignIn component
   const [showSignIn, setShowSignIn] = useState(false);
 
   useEffect(() => {
@@ -32,79 +37,45 @@ export const IntroPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 via-white to-gray-50 dark:from-gray-900 dark:via-gray-950 dark:to-gray-900 text-gray-900 dark:text-gray-100 overflow-x-hidden">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 via-white to-gray-50 dark:from-gray-900 dark:via-gray-950 dark:to-gray-900 text-gray-900 dark:text-gray-100 overflow-x-hidden font-sans">
       
       {/* NAVBAR */}
       <nav className="flex items-center justify-between px-4 sm:px-6 md:px-12 py-4 sm:py-5 bg-white/70 dark:bg-gray-900/70 backdrop-blur-md sticky top-0 z-50 border-b border-gray-200 dark:border-gray-800">
         <div className="flex items-center gap-2 sm:gap-3">
-          <Image
-            src="/DoczFlow-logo.svg"
-            alt="DoczFlow Logo"
-            width={28}
-            height={28}
-            className="drop-shadow-sm sm:w-8 sm:h-8"
-          />
-          <h1 className="text-lg sm:text-xl font-bold tracking-tight">
-            Docz<span className="text-blue-600 dark:text-blue-400">Flow</span>
+          <Image src="/DoczFlow-logo.svg" alt="DoczFlow Logo" width={28} height={28} className="drop-shadow-sm" />
+          <h1 className="text-lg sm:text-xl font-bold tracking-tight text-gray-800 dark:text-white">
+            Docz<span className="text-blue-600">Flow</span>
           </h1>
         </div>
         
         <div className="flex items-center gap-3 sm:gap-6">
-          <a 
-            href="#features" 
-            onClick={(e) => scrollToSection(e, "features")}
-            className="text-xs sm:text-sm font-medium text-gray-600 hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400 transition cursor-pointer"
-          >
-            Features
-          </a>
-          <a 
-            href="#how-it-works" 
-            onClick={(e) => scrollToSection(e, "how-it-works")}
-            className="text-xs sm:text-sm font-medium text-gray-600 hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400 transition cursor-pointer"
-          >
-            Architecture
-          </a>
+          <a href="#features" onClick={(e) => scrollToSection(e, "features")} className="text-xs sm:text-sm font-medium text-gray-600 hover:text-blue-600 dark:text-gray-300 transition cursor-pointer">Features</a>
+          <a href="#architecture" onClick={(e) => scrollToSection(e, "architecture")} className="text-xs sm:text-sm font-medium text-gray-600 hover:text-blue-600 dark:text-gray-300 transition cursor-pointer">Architecture</a>
+          <button onClick={() => setShowSignIn(true)} className="text-xs sm:text-sm font-bold text-blue-600 px-3 py-1.5 rounded-full border border-blue-200 hover:bg-blue-50 transition">Sign In</button>
         </div>
       </nav>
 
-      {/* HERO SECTION */}
-      <section className="relative w-full min-h-[85vh] flex flex-col lg:flex-row items-center justify-center lg:justify-between px-4 sm:px-8 md:px-12 lg:px-20 py-12 sm:py-20 overflow-hidden gap-12 lg:gap-0">
-        
-        {/* Background Glow Animation */}
+      {/* HERO SECTION - FOCUS: COLLABORATION FIRST */}
+      <section className="relative w-full min-h-[85vh] flex flex-col lg:flex-row items-center justify-center px-4 sm:px-8 md:px-12 lg:px-20 py-12 overflow-hidden gap-12">
         <div className="absolute inset-0 pointer-events-none">
-          <motion.div
-            animate={{ opacity: [0.4, 0.8, 0.4] }}
-            transition={{ duration: 6, repeat: Infinity }}
-            className="absolute top-10 lg:top-20 left-4 lg:left-10 w-48 lg:w-72 h-48 lg:h-72 bg-blue-400/20 dark:bg-blue-500/20 rounded-full blur-3xl"
-          />
-          <motion.div
-            animate={{ opacity: [0.3, 0.7, 0.3] }}
-            transition={{ duration: 7, repeat: Infinity, delay: 1 }}
-            className="absolute bottom-10 lg:bottom-20 right-4 lg:right-10 w-56 lg:w-80 h-56 lg:h-80 bg-purple-400/20 dark:bg-purple-600/20 rounded-full blur-3xl"
-          />
+          <motion.div animate={{ opacity: [0.4, 0.7, 0.4] }} transition={{ duration: 6, repeat: Infinity }} className="absolute top-10 left-10 w-72 h-72 bg-blue-400/20 rounded-full blur-3xl" />
         </div>
 
-        {/* Left Content */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          className="flex flex-col items-center lg:items-start text-center lg:text-left gap-5 sm:gap-6 max-w-2xl lg:max-w-xl z-10 w-full"
-        >
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs sm:text-sm font-medium mb-2 border border-blue-200 dark:border-blue-800 shadow-sm">
-            <Sparkles className="size-3 sm:size-4" />
-            <span>AI-Powered Real-time Editor</span>
+        <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }} className="flex flex-col items-center lg:items-start text-center lg:text-left gap-6 max-w-2xl z-10">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs sm:text-sm font-bold border border-blue-200">
+            <Users className="size-3.5" />
+            <span>Real-time Team Workspace</span>
           </div>
 
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-[1.1] tracking-tight">
-            The Future of <br className="hidden sm:block lg:hidden xl:block" />
-            <span className="bg-gradient-to-r from-blue-600 to-purple-500 bg-clip-text text-transparent drop-shadow-sm">
-              Collaborative Writing
+            Collaborative Editing <br />
+            <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              Enhanced by AI.
             </span>
           </h1>
 
-          <p className="text-base sm:text-lg text-gray-600 dark:text-gray-400 leading-relaxed px-2 sm:px-0">
-            Write, edit, and collaborate with your team instantly. Powered by CRDT engine and enhanced by Context-Aware AI.
+          <p className="text-base sm:text-lg text-gray-600 dark:text-gray-400 leading-relaxed max-w-xl">
+            DoczFlow combines high-speed multi-user sync with an intelligent AI assistant. Write together, sync instantly, and let AI handle the heavy lifting.
           </p>
 
           <motion.ul
@@ -136,76 +107,40 @@ export const IntroPage = () => {
               </motion.li>
             ))}
           </motion.ul>
+       
+
+          <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+            <button onClick={() => setShowSignIn(true)} className="px-8 py-4 bg-blue-600 text-white rounded-full font-bold text-lg shadow-xl hover:bg-blue-700 transition-all flex items-center justify-center gap-2">
+              Launch Workspace <ArrowRight className="size-5" />
+            </button>
+          </div>
         </motion.div>
 
-        {/* Right Content (Dynamic Box: Button -> SignIn) */}
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.8, delay: 0.2 }}
-          className="w-full sm:max-w-md lg:w-[450px] z-10 flex flex-col items-center justify-center min-h-[400px]"
-        >
-          <AnimatePresence mode="wait">
-            {!showSignIn ? (
-              <motion.div
-                key="get-started-btn"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.9, filter: "blur(4px)" }}
-                transition={{ duration: 0.3 }}
-                className="flex flex-col items-center gap-4 w-full"
-              >
-                <button
-                  onClick={() => setShowSignIn(true)}
-                  className="group relative inline-flex items-center justify-center gap-3 px-8 py-4 w-3/4 sm:w-auto text-white font-bold text-lg rounded-full bg-gradient-to-r from-blue-600 to-purple-600 shadow-[0_10px_30px_rgba(37,99,235,0.4)] hover:shadow-[0_15px_40px_rgba(37,99,235,0.6)] hover:-translate-y-1 transition-all duration-300 overflow-hidden"
-                >
-                  <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-purple-600 to-blue-600 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                  <span className="relative z-10">Get Started</span>
-                  <ArrowRight className="relative z-10 size-5 group-hover:translate-x-1 transition-transform" />
-                </button>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Join the workspace instantly.</p>
-              </motion.div>
-            ) : (
-              <motion.div
-                key="signin-component"
-                initial={{ opacity: 0, scale: 0.95, filter: "blur(4px)" }}
-                animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
-                transition={{ duration: 0.4 }}
-                className="p-4 sm:p-6 md:p-8 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-2xl sm:rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.15)] dark:shadow-[0_20px_60px_rgba(0,0,0,0.5)] border border-gray-200/60 dark:border-gray-700/60 w-full"
-              >
-                <SignIn
-                  routing="hash"
-                  appearance={{
-                    elements: {
-                      card: "shadow-none border-none bg-transparent w-full p-0 sm:p-auto",
-                      headerTitle: "text-lg sm:text-xl font-bold",
-                      headerSubtitle: "text-xs sm:text-sm text-gray-500 dark:text-gray-400",
-                      formFieldLabel: "text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300",
-                      socialButtonsBlockButton: "rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition shadow-sm",
-                      footerActionText: "text-xs sm:text-sm text-gray-600 dark:text-gray-400 text-center",
-                      footerActionLink: "text-blue-600 dark:text-blue-400 hover:underline font-medium",
-                    },
-                  }}
-                />
-                <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center">
-                  <p className="text-[10px] sm:text-[11px] text-gray-400 dark:text-gray-500 uppercase tracking-wider font-semibold">
-                    Secured by Clerk
-                  </p>
-                  <button 
-                    onClick={() => setShowSignIn(false)}
-                    className="text-xs text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
-                  >
-                    Back
-                  </button>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+        {/* HERO VISUAL - REALTIME & AI MOCKUP */}
+        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }} className="relative w-full max-w-md lg:w-[480px] bg-white dark:bg-gray-800 rounded-3xl shadow-2xl border border-gray-100 dark:border-gray-700 p-6 overflow-hidden">
+           <div className="flex gap-2 items-center border-b pb-4 mb-4">
+              <div className="size-3 rounded-full bg-red-400" />
+              <div className="size-3 rounded-full bg-yellow-400" />
+              <div className="size-3 rounded-full bg-green-400" />
+              <span className="text-[10px] text-gray-400 font-mono ml-2">document_sync_active</span>
+           </div>
+           <div className="space-y-3">
+              <div className="h-3 w-3/4 bg-blue-50 rounded" />
+              <div className="relative h-10 w-full border-l-4 border-purple-500 bg-purple-50/30 flex items-center px-3">
+                <p className="text-[11px] text-purple-600 font-medium italic"><Sparkles className="size-3 inline mr-1" /> AI is refining this paragraph...</p>
+              </div>
+              <div className="h-3 w-5/6 bg-gray-50 rounded" />
+              <div className="flex items-center gap-2 mt-4">
+                <MousePointer2 className="text-blue-500 fill-current size-4" />
+                <span className="bg-blue-500 text-white text-[9px] px-1.5 py-0.5 rounded">Yogesh</span>
+                <div className="h-3 w-20 bg-blue-100 rounded" />
+              </div>
+           </div>
         </motion.div>
       </section>
 
-      {/* HOW IT WORKS (ARCHITECTURE SECTION) */}
-      <section id="how-it-works" className="px-4 sm:px-6 py-16 sm:py-24 bg-gray-50 dark:bg-gray-950 border-t border-gray-200 dark:border-gray-800 scroll-mt-10">
+       {/* HOW IT WORKS (ARCHITECTURE SECTION) */}
+      <section id="architecture" className="px-4 sm:px-6 py-16 sm:py-24 bg-gray-50 dark:bg-gray-950 border-t border-gray-200 dark:border-gray-800 scroll-mt-10">
         <div className="max-w-5xl mx-auto text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-3 sm:mb-4 tracking-tight">
             The Engine <span className="text-blue-600">Under The Hood</span>
@@ -239,7 +174,7 @@ export const IntroPage = () => {
         </div>
       </section>
 
-      {/* FEATURES SECTION */}
+       {/* FEATURES SECTION */}
       <section id="features" className="px-4 sm:px-6 py-16 sm:py-24 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 scroll-mt-10">
         <div className="max-w-6xl mx-auto text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-10 sm:mb-16 tracking-tight">
@@ -281,6 +216,53 @@ export const IntroPage = () => {
         </div>
       </section>
 
+      {/* NEW SECTION: DOCUMENT INSIGHTS (View & Analytics) */}
+      <section className="py-24 px-4 sm:px-12 bg-white dark:bg-gray-950">
+        <div className="max-w-6xl mx-auto flex flex-col lg:flex-row items-center gap-16">
+          <div className="flex-1 text-left">
+            <h3 className="text-xs font-black text-blue-600 uppercase tracking-widest mb-4">Deep Transparency</h3>
+            <h2 className="text-3xl sm:text-4xl font-black mb-6 tracking-tight">Analytics that go beyond <br/> text editing.</h2>
+            <div className="space-y-6">
+               <div className="flex gap-4">
+                  <div className="shrink-0 bg-blue-50 p-3 rounded-xl text-blue-600"><PieChart className="size-6" /></div>
+                  <div>
+                    <p className="font-bold text-gray-800 dark:text-gray-100">Contribution Tracking</p>
+                    <p className="text-sm text-gray-500">Visualize user impact with real-time volume share charts derived from Yjs CRDT history.</p>
+                  </div>
+               </div>
+               <div className="flex gap-4">
+                  <div className="shrink-0 bg-purple-50 p-3 rounded-xl text-purple-600"><SearchCode className="size-6" /></div>
+                  <div>
+                    <p className="font-bold text-gray-800 dark:text-gray-100">CRDT Node Inspection</p>
+                    <p className="text-sm text-gray-500">Inspect the raw binary operation stream. Audit every insertion and deletion with clock-based precision.</p>
+                  </div>
+               </div>
+               <div className="flex gap-4">
+                  <div className="shrink-0 bg-orange-50 p-3 rounded-xl text-orange-600"><FileText className="size-6" /></div>
+                  <div>
+                    <p className="font-bold text-gray-800 dark:text-gray-100">Paginated Print View</p>
+                    <p className="text-sm text-gray-500">Switch to Content View for a simulated A4 layout. Prepare your document for print with visual page breaks.</p>
+                  </div>
+               </div>
+            </div>
+          </div>
+          <div className="flex-1 w-full bg-slate-900 rounded-3xl p-6 shadow-2xl border border-slate-800 font-mono text-[10px] text-emerald-400">
+             <div className="flex justify-between border-b border-slate-800 pb-3 mb-3 text-slate-500">
+               <span>OPERATION_STREAM</span>
+               <span>v2.4.0</span>
+             </div>
+             <p>{"{"}</p>
+             <p className="pl-4">&ldquo;clientId&rdquo;: &ldquo;5326&rdquo;,</p>
+             <p className="pl-4">&ldquo;clock&rdquo;: 1293,</p>
+             <p className="pl-4">&ldquo;content&rdquo;: &ldquo;Optimizing collaboration metrics...&rdquo;,</p>
+             <p className="pl-4">&ldquo;type&rdquo;: &ldquo;insert&rdquo;</p>
+             <p>{"}"}</p>
+             <p className="mt-4 text-slate-500 italic">{"// Causal ordering resolved successfully"}</p>
+          </div>
+        </div>
+      </section>
+
+
       {/* FOOTER */}
       <footer className="px-4 sm:px-6 py-8 sm:py-10 bg-gray-50 dark:bg-gray-950 text-center text-xs sm:text-sm text-gray-500 dark:text-gray-400 flex flex-col items-center justify-center border-t border-gray-200 dark:border-gray-800">
         <Image
@@ -293,11 +275,27 @@ export const IntroPage = () => {
         <p>© {new Date().getFullYear()} DoczFlow - AI Powered Collaborative Ecosystem.</p>
         <p className="text-[10px] sm:text-xs mt-1">Built with Next.js, Convex, Tiptap, Groq & Liveblocks</p>
       </footer>
+
+      {/* SIGN IN MODAL */}
+      <AnimatePresence>
+        {showSignIn && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-950/70 backdrop-blur-sm">
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="bg-white dark:bg-gray-900 p-8 rounded-3xl shadow-2xl relative w-full max-w-md border dark:border-gray-800">
+              <button onClick={() => setShowSignIn(false)} className="absolute top-6 right-6 text-gray-400 hover:text-gray-900 transition-colors"><XIcon className="size-6"/></button>
+              <div className="mb-8 text-center">
+                 <Image src="/DoczFlow-logo.svg" alt="DoczFlow" width={48} height={48} className="mx-auto mb-4" />
+                 <h2 className="text-2xl font-bold tracking-tight">Access DoczFlow</h2>
+                 <p className="text-sm text-gray-500 mt-2">Sign in to start creating together</p>
+              </div>
+              <SignIn routing="hash" />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
 
-/* ================= COMPONENTS ================= */
 
 const FeatureCard = ({ icon, title, desc }: { icon: React.ReactNode, title: string, desc: string }) => (
   <div className="p-6 sm:p-8 border border-gray-100 dark:border-gray-800 rounded-xl sm:rounded-2xl bg-gray-50/50 dark:bg-gray-800/30 hover:bg-white dark:hover:bg-gray-800 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 group flex flex-col items-start">

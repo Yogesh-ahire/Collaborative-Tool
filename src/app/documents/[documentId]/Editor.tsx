@@ -56,16 +56,12 @@ export const Editor = ({ initialContent, documentId }: EditorProps) => {
   const leftMargin = useStorage((root) => root.leftMargin) ?? LEFT_MARGIN_DEFAULT;
   const rightMargin = useStorage((root) => root.rightMargin) ?? RIGHT_MARGIN_DEFAULT;
 
-  // 🔥 THE FIX: Safely parse content ONCE and keep the memory reference identical.
-  // This prevents Liveblocks from getting confused and re-initializing.
   const parsedContent = useMemo(() => {
     if (!initialContent) return undefined;
     if (typeof initialContent === "string") {
       try {
         return JSON.parse(initialContent);
       } catch (e) {
-        // If JSON parse fails, it's an HTML string from Mammoth (docx import). 
-        // We pass it directly!
         console.log(e);
         return initialContent; 
       }
@@ -73,7 +69,6 @@ export const Editor = ({ initialContent, documentId }: EditorProps) => {
     return initialContent;
   }, [initialContent]);
 
-  // 🔥 THE FIX: Let Liveblocks handle the collision. No manual injection anywhere.
   const liveblocks = useLiveblocksExtension({
     initialContent: parsedContent,
   });

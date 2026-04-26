@@ -26,7 +26,8 @@ import {
     SpellCheckIcon,
     UnderlineIcon,
     Undo2Icon,
-    HistoryIcon, // 🔥 ADDED HistoryIcon
+    HistoryIcon,
+    AlignRightIcon, // 🔥 ADDED HistoryIcon
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEditorStore } from "@/store/use-editor-store";
@@ -39,6 +40,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Sparkles } from "lucide-react";
+
+import { LayoutDashboardIcon } from "lucide-react"; // 🔥 ADD THIS IMPORT AT THE TOP
 
 /*line height */
 const LineHeightButton = () => {
@@ -232,7 +235,7 @@ const AlignButton = () => {
         {
             label: "Align Right",
             value: "right",
-            icon: AlignLeftIcon
+            icon: AlignRightIcon
         },
         {
             label: "Align Justify",
@@ -502,9 +505,10 @@ const ToolbarButton = ({
 
 interface ToolbarProps {
     onAiClick: () => void;
+    onPreviewClick: () => void; // 🔥 NEW PROP
 }
 
-export const Toolbar = ({ onAiClick }: ToolbarProps) => {
+export const Toolbar = ({ onAiClick, onPreviewClick }: ToolbarProps) => {
     const { editor } = useEditorStore();
     const sections: {
         label: string;
@@ -618,8 +622,18 @@ export const Toolbar = ({ onAiClick }: ToolbarProps) => {
             <button
                 onClick={onAiClick} // Use the prop here
                 className="h-7 px-3 hover:bg-neutral-200/80 rounded-sm flex items-center justify-center transition"
+                title="AI Assistant"
             >
                 <Sparkles className="size-4 text-purple-600" />
+            </button>
+
+            {/* 🔥 NEW PREVIEW/ANALYTICS BUTTON */}
+            <button
+                onClick={onPreviewClick} 
+                className="h-7 px-3 hover:bg-neutral-200/80 rounded-sm flex items-center justify-center transition"
+                title="Document Insights & Preview"
+            >
+                <LayoutDashboardIcon className="size-4 text-blue-600" />
             </button>
         </div>
     );
