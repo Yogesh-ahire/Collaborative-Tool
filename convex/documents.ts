@@ -206,6 +206,12 @@ export const createVersion = mutation({
     const user = await ctx.auth.getUserIdentity();
     if (!user) throw new ConvexError("Unauthorized");
 
+    // 🔥 CRITICAL FIX FOR SHARE LINK: Update the main document's content
+    // This ensures that anyone opening the share link gets the latest saved data.
+    await ctx.db.patch(documentId, {
+      initialContent: content,
+    });
+
     const latest = await ctx.db
       .query("document_versions")
       .withIndex("by_document_version", (q) =>
