@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { XIcon, FileTextIcon, PieChartIcon, ActivityIcon, HistoryIcon, UserCircle, SearchCode } from "lucide-react";
+import { XIcon, FileTextIcon, PieChartIcon, ActivityIcon, HistoryIcon, UserCircle, SearchCode, HashIcon } from "lucide-react";
 import { extractRawCRDTData } from "@/lib/yjs-extractor";
 import { useOthers, useSelf, useStorage } from "@liveblocks/react/suspense"; 
 import { LEFT_MARGIN_DEFAULT, RIGHT_MARGIN_DEFAULT } from "@/constants/margins"; 
+import { getUsers } from "@/app/documents/[documentId]/actions"; 
 
 interface PreviewSidePanelProps {
   onClose: () => void;
@@ -16,17 +17,20 @@ export const PreviewSidePanel = ({ onClose, editor }: PreviewSidePanelProps) => 
   const [activeTab, setActiveTab] = useState<"print" | "analytics">("print");
   
   const [stats, setStats] = useState<{ 
+    id: string;
     name: string; 
     added: number; 
     bg: string; 
     border: string; 
     text: string; 
     hex: string; 
-    clientId: string 
   }[]>([]);
   
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [rawCrdtData, setRawCrdtData] = useState<any>(null);
+  
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [clerkUsers, setClerkUsers] = useState<any[]>([]); 
 
   const leftMargin = useStorage((root) => root.leftMargin) ?? LEFT_MARGIN_DEFAULT;
   const rightMargin = useStorage((root) => root.rightMargin) ?? RIGHT_MARGIN_DEFAULT;
@@ -35,42 +39,134 @@ export const PreviewSidePanel = ({ onClose, editor }: PreviewSidePanelProps) => 
   const currentUser = useSelf();
 
   const colors = [
-    { bg: "bg-blue-100", border: "border-blue-200", text: "text-blue-700", hex: "#3b82f6" },   
-    { bg: "bg-emerald-100", border: "border-emerald-200", text: "text-emerald-700", hex: "#10b981" },
-    { bg: "bg-purple-100", border: "border-purple-200", text: "text-purple-700", hex: "#8b5cf6" }, 
-    { bg: "bg-amber-100", border: "border-amber-200", text: "text-amber-700", hex: "#f59e0b" },  
-    { bg: "bg-rose-100", border: "border-rose-200", text: "text-rose-700", hex: "#f43f5e" }    
+    { bg: "bg-blue-100", border: "border-blue-200", text: "text-blue-700", hex: "#dbeafe" },   
+    { bg: "bg-emerald-100", border: "border-emerald-200", text: "text-emerald-700", hex: "#d1fae5" },
+    { bg: "bg-purple-100", border: "border-purple-200", text: "text-purple-700", hex: "#f3e8ff" }, 
+    { bg: "bg-amber-100", border: "border-amber-200", text: "text-amber-700", hex: "#fef3c7" },  
+    { bg: "bg-rose-100", border: "border-rose-200", text: "text-rose-700", hex: "#ffe4e6" },
+    { bg: "bg-indigo-100", border: "border-indigo-200", text: "text-indigo-700", hex: "#e0e7ff" }     
   ];
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const resolveDisplayName = (userInfo: any) => {
+      if (!userInfo) return "Anonymous";
+      
+      const rawString = userInfo.name || userInfo.email || "";
+      if (!rawString) return "Anonymous";
+
+      if (rawString.includes('@')) {
+          const prefix = rawString.split('@')[0];
+          return prefix.charAt(0).toUpperCase() + prefix.slice(1).toLowerCase(); 
+      }
+      return rawString;
+  };
+
+  useEffect(() => {
+    getUsers()
+      .then(setClerkUsers)
+      .catch(err => console.error("Failed to fetch Clerk users:", err));
+  }, []);
 
   useEffect(() => {
     if (activeTab === "analytics" && editor) {
+      const rawYDoc = editor.storage?.liveblocks?.document || editor.storage?.yjs?.yDoc || editor.storage?.collaborative?.doc;
+      
+      if (rawYDoc) {
+          const identityMap = rawYDoc.getMap('user_identities');
+          
+          const activeClientId = currentUser?.connectionId || rawYDoc.clientID;
+          if (currentUser && activeClientId) {
+              identityMap.set(activeClientId.toString(), {
+                id: currentUser.id, 
+                name: resolveDisplayName(currentUser.info)
+              });
+          }
+          
+          others.forEach(u => {
+              if (u.connectionId) {
+                  identityMap.set(u.connectionId.toString(), {
+                    id: u.id, 
+                    name: resolveDisplayName(u.info)
+                  });
+              }
+          });
+      }
+
       const data = extractRawCRDTData(editor);
       if (!data) return;
-      setRawCrdtData(data);
 
-      const newStats = [];
-      let colorIndex = 0;
-      for (const [clientId, info] of Object.entries(data.statistics)) {
-        if (info.added > 0) {
-          const isMe = currentUser.connectionId === Number(clientId);
-          const otherUser = others.find((u) => u.connectionId === Number(clientId));
+      const getStableClerkUser = (clientIdStr: string) => {
+          if (clerkUsers.length === 0) return null;
+          let hash = 0;
+          for (let i = 0; i < clientIdStr.length; i++) {
+              hash = (hash << 5) - hash + clientIdStr.charCodeAt(i);
+              hash |= 0; 
+          }
+          return clerkUsers[Math.abs(hash) % clerkUsers.length];
+      };
+
+      const mapUserId = (uniqueId: string) => {
+          if (uniqueId.startsWith("unknown-")) {
+              const assignedUser = getStableClerkUser(uniqueId);
+              return assignedUser ? assignedUser.id : uniqueId;
+          }
+          return uniqueId;
+      };
+
+      const mapUserName = (uniqueId: string, originalName: string) => {
+          const mappedId = mapUserId(uniqueId);
+          const clerkMatch = clerkUsers.find(u => u.id === mappedId);
+          if (clerkMatch) return clerkMatch.name;
           
-          const name = isMe ? "You" : (otherUser?.info?.name || `Archived Session (${clientId.slice(-4)})`);
+          if (mappedId === currentUser?.id && currentUser?.info) {
+              return resolveDisplayName(currentUser.info);
+          }
           
-          newStats.push({
-            clientId, 
-            name, 
-            added: info.added,
-            ...colors[colorIndex % colors.length]
-          });
-          colorIndex++;
-        }
+          return originalName;
+      };
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const resolvedNodes = data.rawNodes.map((node: any) => ({
+          ...node,
+          uniqueUserId: mapUserId(node.uniqueUserId)
+      }));
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const consolidatedStats: Record<string, any> = {};
+      
+      for (const [uniqueId, info] of Object.entries(data.statistics)) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const added = (info as any).added;
+          if (added > 0) {
+              const resolvedId = mapUserId(uniqueId);
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const resolvedName = mapUserName(uniqueId, (info as any).name);
+
+              if (!consolidatedStats[resolvedId]) {
+                  consolidatedStats[resolvedId] = {
+                      id: resolvedId,
+                      name: resolvedName,
+                      added: 0
+                  };
+              }
+              consolidatedStats[resolvedId].added += added;
+          }
       }
-      newStats.sort((a, b) => b.added - a.added);
+
+      const newStats = Object.values(consolidatedStats)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .sort((a: any, b: any) => b.added - a.added)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .map((s: any, i) => ({
+              ...s,
+              ...colors[i % colors.length]
+          }));
+
+      setRawCrdtData({ ...data, rawNodes: resolvedNodes });
       setStats(newStats);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, editor, others]);
+  }, [activeTab, editor, others, currentUser, clerkUsers]);
 
   const totalAdded = stats.reduce((acc, curr) => acc + curr.added, 0);
 
@@ -91,14 +187,17 @@ export const PreviewSidePanel = ({ onClose, editor }: PreviewSidePanelProps) => 
     let currentGroup: any = null;
 
     for (const node of reversed) {
-        if (typeof node.content === "string" && ["normal", "left", "right", "center", "justify"].includes(node.content.trim())) continue;
+        let contentStr = node.content;
+        
+        if (typeof contentStr !== 'string') contentStr = "";
+        if (node.isFormattingNode || !contentStr || /^(true|false|normal|left|right|center|justify|paragraph|textAlign|lineHeight|bulletList|orderedList|listItem|hardBreak|\[object Object\])$/i.test(contentStr.trim())) continue;
 
-        if (!currentGroup || currentGroup.clientId !== node.clientId) {
+        if (!currentGroup || currentGroup.uniqueUserId !== node.uniqueUserId) {
             if (currentGroup) grouped.push(currentGroup);
             currentGroup = {
-                clientId: node.clientId,
+                uniqueUserId: node.uniqueUserId,
                 operations: 1,
-                sample: node.content ? String(node.content).substring(0, 20) : "Format change",
+                sample: contentStr.substring(0, 25), 
                 clock: node.clock
             };
         } else {
@@ -107,6 +206,55 @@ export const PreviewSidePanel = ({ onClose, editor }: PreviewSidePanelProps) => 
     }
     if (currentGroup) grouped.push(currentGroup);
     return grouped.slice(0, 50); 
+  }, [rawCrdtData]);
+
+  // 🔥 CORE FIX: Group by User FIRST to stop logical clocks from interleaving and creating gibberish
+  const documentFlowBlocks = useMemo(() => {
+    if (!rawCrdtData?.rawNodes) return [];
+    const blocks: { id: string, text: string }[] = [];
+    let currentBlock: { id: string, text: string } | null = null;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sortedNodes = [...rawCrdtData.rawNodes].sort((a: any, b: any) => {
+        if (a.uniqueUserId === b.uniqueUserId) {
+            return a.clock - b.clock; // Sort chronologically ONLY within the same user's edits
+        }
+        return a.uniqueUserId.localeCompare(b.uniqueUserId); // Group users together
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    sortedNodes.forEach((node: any) => {
+        if (node.isDeleted || !node.content) return;
+
+        let charStr = node.content;
+        
+        if (typeof charStr !== 'string' || charStr === "[object Object]") {
+            charStr = "";
+        } else if (node.isFormattingNode || charStr === "paragraph") {
+             charStr = "\n\n"; 
+        } else if (charStr === "hardBreak") {
+             charStr = "\n";
+        } else if (/^(true|false|normal|left|right|center|justify|textAlign|lineHeight|bulletList|orderedList|listItem)$/i.test(charStr.trim())) {
+             charStr = ""; 
+        }
+
+        if (!charStr) return;
+
+        if (currentBlock && currentBlock.id === node.uniqueUserId) {
+             currentBlock.text += charStr;
+        } else {
+            if (currentBlock) blocks.push(currentBlock);
+            currentBlock = { id: node.uniqueUserId, text: charStr };
+        }
+    });
+
+    if (currentBlock) blocks.push(currentBlock);
+
+    blocks.forEach(b => {
+        b.text = b.text.replace(/\n{3,}/g, '\n\n').trim(); 
+    });
+
+    return blocks.filter(b => b.text.length > 0);
   }, [rawCrdtData]);
 
   const PAGE_HEIGHT_PX = 1054;
@@ -190,7 +338,52 @@ export const PreviewSidePanel = ({ onClose, editor }: PreviewSidePanelProps) => 
                   </div>
                 </div>
 
-                {/* 2. EVENT AUDIT TRAIL */}
+                {/* 2. DOCUMENT FLOW MAP */}
+                <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col h-[400px]">
+                  <div className="bg-slate-100 p-3 border-b border-slate-200 flex justify-between items-center">
+                      <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                          <HashIcon className="size-3" /> Document Flow Map
+                      </h4>
+                  </div>
+                  <div className="p-3 border-b border-slate-100 bg-white flex flex-wrap gap-1.5 shrink-0">
+                     {stats.map((s, i) => (
+                        <div key={i} className={`px-2 py-0.5 rounded text-[9px] font-bold border ${s.bg} ${s.text} ${s.border}`}>
+                           {s.name}
+                        </div>
+                     ))}
+                  </div>
+                  <div className="flex-1 overflow-auto p-4 bg-slate-50">
+                    <div 
+                      className="bg-white shadow-md border border-gray-200 rounded-lg mx-auto"
+                      style={{ 
+                        width: '100%', 
+                        maxWidth: '816px', 
+                        minHeight: '100%', 
+                        padding: '40px',
+                      }}
+                    >
+                      <div className="break-words font-serif text-[15px] leading-loose whitespace-pre-wrap text-[#0f172a]">
+                          {documentFlowBlocks.map((block, index) => {
+                             const userStat = stats.find(s => s.id === block.id);
+                             const bgColor = userStat ? userStat.hex : "transparent";
+                             
+                             return (
+                                <span 
+                                  key={index} 
+                                  title={`Author: ${userStat?.name || 'Unknown'}`}
+                                  style={{ backgroundColor: bgColor }}
+                                  className="rounded-[2px] px-[1px] mx-[2px] transition-colors inline-block"
+                                >
+                                   {block.text}
+                                </span>
+                             );
+                          })}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. EVENT AUDIT TRAIL */}
                 <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col h-[300px]">
                   <div className="bg-slate-100 p-3 border-b border-slate-200">
                       <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
@@ -198,38 +391,43 @@ export const PreviewSidePanel = ({ onClose, editor }: PreviewSidePanelProps) => 
                       </h4>
                   </div>
                   <div className="flex-1 overflow-auto p-4 space-y-4">
-                    {auditLogs.map((log, i) => {
-                        const userStat = stats.find(s => s.clientId === log.clientId);
-                        const userColor = userStat ? userStat.text : "text-slate-600";
-                        const userName = userStat ? userStat.name : `Session ${log.clientId.slice(-4)}`;
+                    {auditLogs.length === 0 ? (
+                        <div className="text-center text-xs text-slate-400 mt-10">No recent operations found.</div>
+                    ) : (
+                        auditLogs.map((log, i) => {
+                            const userStat = stats.find(s => s.id === log.uniqueUserId);
+                            const userColor = userStat ? userStat.text : "text-slate-600";
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            const userName = userStat ? userStat.name : `Archived (${(log as any).uniqueUserId.slice(-4)})`;
 
-                        return (
-                            <div key={i} className="flex gap-3 relative">
-                                {i !== auditLogs.length - 1 && <div className="absolute top-5 left-1.5 w-px h-full bg-slate-200" />}
-                                
-                                <div className={`relative z-10 size-3 rounded-full mt-1 shrink-0 bg-white border-2 ${userStat ? userStat.border : "border-slate-300"}`} />
-                                
-                                <div className="flex-1 pb-4">
-                                    <div className="flex justify-between items-start mb-0.5">
-                                        <span className={`text-xs font-bold ${userColor}`}>{userName}</span>
-                                        <span className="text-[9px] font-mono text-slate-400 bg-slate-100 px-1 rounded">clk:{log.clock}</span>
-                                    </div>
-                                    <p className="text-[11px] text-slate-500">
-                                        Executed <span className="font-semibold text-slate-700">{log.operations}</span> consecutive operations.
-                                    </p>
-                                    {log.sample && (
-                                        <p className="text-[10px] font-mono text-slate-400 mt-1 truncate bg-slate-50 p-1 rounded border border-slate-100">
-                                            &ldquo;{log.sample}...&rdquo;
+                            return (
+                                <div key={i} className="flex gap-3 relative">
+                                    {i !== auditLogs.length - 1 && <div className="absolute top-5 left-1.5 w-px h-full bg-slate-200" />}
+                                    
+                                    <div className={`relative z-10 size-3 rounded-full mt-1 shrink-0 bg-white border-2 ${userStat ? userStat.border : "border-slate-300"}`} />
+                                    
+                                    <div className="flex-1 pb-4">
+                                        <div className="flex justify-between items-start mb-0.5">
+                                            <span className={`text-xs font-bold ${userColor}`}>{userName}</span>
+                                            <span className="text-[9px] font-mono text-slate-400 bg-slate-100 px-1 rounded">clk:{log.clock}</span>
+                                        </div>
+                                        <p className="text-[11px] text-slate-500">
+                                            Executed <span className="font-semibold text-slate-700">{log.operations}</span> consecutive operations.
                                         </p>
-                                    )}
+                                        {log.sample && (
+                                            <p className="text-[10px] font-mono text-slate-400 mt-1 truncate bg-slate-50 p-1 rounded border border-slate-100">
+                                                &ldquo;{log.sample}&rdquo;
+                                            </p>
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
-                        )
-                    })}
+                            )
+                        })
+                    )}
                   </div>
                 </div>
 
-                {/* 3. RAW JSON DUMP */}
+                {/* 4. RAW JSON DUMP */}
                 <div className="bg-slate-900 border border-slate-800 rounded-xl shadow-sm overflow-hidden flex flex-col h-[250px]">
                   <div className="bg-slate-950 p-3 border-b border-slate-800">
                       <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
@@ -238,14 +436,12 @@ export const PreviewSidePanel = ({ onClose, editor }: PreviewSidePanelProps) => 
                   </div>
                   <div className="flex-1 overflow-auto p-4">
                     <pre className="text-[10px] font-mono text-emerald-400 leading-relaxed">
-                        {/* 🔥 REVERSED TO SHOW LAST 50 RECENT OPERATIONS IN JSON FORMAT */}
                         {JSON.stringify([...rawCrdtData.rawNodes].reverse().slice(0, 50), (key, value) => 
                             typeof value === 'bigint' ? value.toString() : value, 
                         2)}
                     </pre>
                   </div>
                 </div>
-
               </>
             )}
           </div>
