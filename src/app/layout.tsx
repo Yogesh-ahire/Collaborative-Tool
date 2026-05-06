@@ -7,7 +7,6 @@ import { ConvexClientProvider } from "@/components/convex-client-provider";
 
 import "@liveblocks/react-ui/styles.css";
 import "@liveblocks/react-tiptap/styles.css";
-// @ts-expect-error - Webpack handles this, TS typings are just missing
 import "./globals.css";
 
 const inter = Inter({
