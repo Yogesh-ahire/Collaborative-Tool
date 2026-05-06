@@ -74,6 +74,7 @@ export async function POST(req: Request) {
                 await index.upsert(batch as any);
                 console.log(`✅ Batch ${Math.floor(i/100) + 1} pushed via Option A`);
             } catch (errA) {
+              console.log(errA)
                 try {
                     // 🔥 Try Option B: Object wrap (Newer SDK style)
                     await index.upsert({
