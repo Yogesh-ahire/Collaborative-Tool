@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useParams } from "next/navigation"; // 🔥 ADD THIS IMPORT
 import { useEditorStore } from "@/store/use-editor-store";
 import { Loader2, SendIcon, CheckIcon, XIcon, CopyIcon, Trash2Icon, TargetIcon } from "lucide-react";
 import { toast } from "sonner";
@@ -11,6 +12,8 @@ interface Props {
 
 export default function AIChatPanel({ onClose }: Props) {
     const { editor } = useEditorStore();
+    const params = useParams(); // 🔥 GET URL PARAMS
+    const documentId = params.documentId as string; // 🔥 EXTRACT DOC ID
     
     // 🔥 FIX: Ref targets the scrollable container, not just the end div
     const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -73,8 +76,11 @@ export default function AIChatPanel({ onClose }: Props) {
         setLoading(true);
         setInserted(false);
 
-        const contextData = selectedContext ? selectedContext : editor.getText();
         const contextType = selectedContext ? "Selection" : "Document";
+        
+        // 🔥 CRITICAL FIX: If it's a "Document" query, DON'T send the 95k chars to the API. 
+        // Let the backend fetch the 3 relevant chunks from Pinecone.
+        const contextData = selectedContext ? selectedContext : "";
 
         try {
             const res = await fetch("/api/ai", {
@@ -83,9 +89,10 @@ export default function AIChatPanel({ onClose }: Props) {
                 body: JSON.stringify({
                     text: userMsg,
                     action: "qa",
-                    context: contextData,
+                    context: contextData, 
+                    documentId: documentId, // 🔥 FIX: Now this sends the actual valid Convex ID!
                     contextType: contextType, 
-                    history: messages 
+                    history: messages
                 }),
             });
 

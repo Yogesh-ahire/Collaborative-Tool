@@ -1,82 +1,103 @@
 import { NextResponse } from "next/server";
+import { Pinecone } from "@pinecone-database/pinecone";
+import { pipeline } from "@xenova/transformers";
 
 const ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
 
-type Message = {
-  role: "system" | "user" | "assistant";
-  content: string;
-};
+type Message = { role: "system" | "user" | "assistant"; content: string; };
+
+const pc = new Pinecone({ apiKey: process.env.PINECONE_API_KEY! });
+const index = pc.index("doczflow");
 
 export async function POST(req: Request) {
   try {
-    const { text, action, context, modifier, contextType, history } = await req.json();
+    const { text, action, context, documentId, modifier, contextType, history } = await req.json();
 
-    const docContext = context || "";
+    let docContext = "";
     let apiMessages: Message[] = [];
-    let temperature = 0.3; // Default
+    let temperature = 0.3;
 
     if (action === "qa") {
-      // 🧠 BRAIN 1: CONVERSATIONAL CHAT ASSISTANT
       temperature = 0.6; 
+
+      // 🔥 RAG IMPLEMENTATION: Find relevant chunks
+      if (contextType === "Document" && documentId) {
+          try {
+              const generateEmbedding = await pipeline("feature-extraction", "Xenova/all-MiniLM-L6-v2");
+              const queryVector = await generateEmbedding(text, { pooling: "mean", normalize: true });
+              const embeddingArray = Array.from(queryVector.data) as number[];
+
+              const queryResponse = await index.query({
+                  vector: embeddingArray,
+                  topK: 3,
+                  filter: { documentId: { "$eq": documentId } },
+                  includeMetadata: true
+              });
+
+              docContext = queryResponse.matches.map(m => m.metadata?.text).join("\n\n---\n\n");
+          } catch (e) {
+              console.error("Vector search failed, falling back to empty context", e);
+              docContext = ""; 
+          }
+      } else {
+          docContext = context || "";
+      }
+
+      // 🔥 THE FIX: Tri-Mode Prompting for Selection vs RAG vs Empty
+      let chatInstruction = "";
       
-      const chatInstruction = `
-You are "DoczFlow AI", a highly intelligent, concise, and friendly assistant integrated into the DoczFlow document editor.
-
-CRITICAL BEHAVIOR RULES:
-1. IDENTITY: You are an AI assistant. Be conversational and natural. Do NOT use clunky phrases like "I exist in the digital realm" or "I am just a computer program". Talk like a helpful, normal colleague.
-2. CONTEXT SEPARATION: Do NOT blindly summarize the document just because the user mentions keywords. If the user asks a casual question (e.g., "how are you", "hello"), reply casually and briefly. 
-3. DOCUMENT USAGE: ONLY extract information from the "Document Context" if the user EXPLICITLY asks a question about the document's content, text, or data.
-
-UI FORMATTING RULES:
-1. You MUST format your responses using basic HTML tags (e.g., <p>, <strong>, <em>, <ul>, <li>).
-2. NEVER use markdown (no **, no ##).
-3. Do NOT wrap your response in \`\`\`html blocks.
-
-CONTEXTUAL AWARENESS:
-The user is currently looking at this content (Type: ${contextType || "Document"}):
+      if (contextType === "Selection" && docContext.trim().length > 0) {
+          // MODE A: User highlighted specific text
+          chatInstruction = `
+You are "DoczFlow AI", a strict and precise assistant integrated into the DoczFlow editor.
+The user has highlighted this specific section of their document:
 """
 ${docContext}
 """
+You MUST analyze and address the ENTIRE highlighted text comprehensively. 
+Do NOT reference previous actions, do NOT make up narratives about what the user selected previously, and do NOT ignore any part of the text. Stick strictly to explaining, summarizing, or modifying the provided text as requested.
+Format all responses strictly in basic HTML (e.g., <p>, <strong>, <ul>, <li>). NO Markdown.
 `;
-      apiMessages.push({ role: "system", content: chatInstruction });
-
-      // Load previous conversation memory
-      if (history && Array.isArray(history)) {
-        history.forEach((msg) => {
-           apiMessages.push({
-             role: msg.role === "ai" ? "assistant" : "user",
-             content: msg.text
-           });
-        });
+      } else if (docContext && docContext !== "No relevant context found in database." && docContext.trim().length > 0) {
+          // MODE B: Document has content -> Full Document RAG
+          chatInstruction = `
+You are "DoczFlow AI", an assistant integrated into the DoczFlow editor.
+Here is the MOST RELEVANT text retrieved from the user's document to answer their question:
+"""
+${docContext}
+"""
+You MUST answer the user's question based ONLY on the context provided above. 
+If the context doesn't contain the answer, politely state that you cannot find it in the current document context, BUT then try to provide a general helpful answer anyway based on your knowledge.
+Format all your responses strictly in basic HTML (e.g., <p>, <strong>, <ul>, <li>, <br>). NO Markdown formatting like ** or ##.
+`;
+      } else {
+          // MODE C: Document is empty or no context matched -> Creative writer
+          chatInstruction = `
+You are "DoczFlow AI", a helpful and creative writing assistant integrated into a document editor. 
+The user's document is currently empty or they are asking for general content generation.
+Fulfill the user's request comprehensively (e.g., writing essays, emails, drafting code, or brainstorming).
+Format all your responses strictly in basic HTML (e.g., <p>, <strong>, <ul>, <li>, <br>). Do NOT use Markdown formatting like ** or ##.
+`;
       }
 
-      // Add the current user message
+      apiMessages.push({ role: "system", content: chatInstruction });
+
+      if (history && Array.isArray(history)) {
+        history.slice(-4).forEach((msg) => {
+           apiMessages.push({ role: msg.role === "ai" ? "assistant" : "user", content: msg.text });
+        });
+      }
       apiMessages.push({ role: "user", content: text });
 
     } else {
-      // 🤖 BRAIN 2: STRICT EDITOR ROBOT (Bubble Menu)
-      temperature = 0.2; // Highly deterministic
+      // BUBBLE MENU ACTIONS (Grammar, Translate, Tone) - Uses direct text
+      temperature = 0.2; 
+      const editorInstruction = `You are a strict text-processing engine. Preserve EXACT HTML structure. Return ONLY minified HTML. No newlines. No markdown.`;
       
-      const editorInstruction = `
-You are a strict, automated text-processing engine integrated into a rich text editor.
-
-CRITICAL ARCHITECTURAL RULE:
-You MUST preserve the EXACT HTML tag structure provided. ONLY modify the text nodes INSIDE the tags.
-
-STRICT OUTPUT RULES:
-1. Output ONLY valid HTML.
-2. NO markdown formatting whatsoever.
-3. NO conversational filler (e.g., "Here is the corrected text:"). Speak ONLY in the requested output.
-4. RETURN MINIFIED HTML. Do NOT include ANY newlines (\\n) or extra spaces between tags.`;
-
-      let taskInstruction = "";
-      if (action === "grammar") {
-        taskInstruction = `Task: Fix the grammar and spelling. Do not change the original meaning.\nReturn ONLY the corrected HTML.\nInput HTML: ${text}`;
-      } else if (action === "tone") {
-        taskInstruction = `Task: Rewrite the text in a ${modifier} tone.\nReturn ONLY the rewritten HTML. Ensure bullet points remain bullet points.\nInput HTML: ${text}`;
-      } else if (action === "translate") {
-        taskInstruction = `Task: Translate the text into ${modifier}.\nReturn ONLY the translated HTML.\nInput HTML: ${text}`;
-      }
+      let taskInstruction = `Task: Process this HTML.\nInput HTML: ${text}`;
+      if (action === "grammar") taskInstruction = `Task: Fix grammar and spelling. Return ONLY corrected HTML.\nInput HTML: ${text}`;
+      else if (action === "tone") taskInstruction = `Task: Rewrite in a ${modifier} tone. Return ONLY rewritten HTML.\nInput HTML: ${text}`;
+      else if (action === "translate") taskInstruction = `Task: Translate to ${modifier}. Return ONLY translated HTML.\nInput HTML: ${text}`;
 
       apiMessages = [
         { role: "system", content: editorInstruction },
@@ -84,39 +105,20 @@ STRICT OUTPUT RULES:
       ];
     }
 
-    // 🔹 API CALL
     const response = await fetch(ENDPOINT, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: "llama-3.1-8b-instant",
-        messages: apiMessages,
-        temperature: temperature,
-        max_tokens: 1500,
-      }),
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${process.env.GROQ_API_KEY}` },
+      body: JSON.stringify({ model: "llama-3.1-8b-instant", messages: apiMessages, temperature, max_tokens: 1500 }), 
     });
 
     const data = await response.json();
-
-    if (!response.ok) {
-      return NextResponse.json(
-        { error: data.error?.message || "Groq request failed" },
-        { status: 500 }
-      );
-    }
+    if (!response.ok) return NextResponse.json({ error: data.error?.message || "Groq failed" }, { status: 500 });
 
     let result = data.choices?.[0]?.message?.content ?? "";
-
-    // CLEANUP: Always strip markdown code blocks if AI hallucinates them
     result = result.replace(/```html\n?/gi, "").replace(/```\n?/gi, "");
 
-    // STRICT CLEANUP FOR EDITOR (Bubble Menu only - Do NOT minify chat)
     if (action !== "qa") {
-      result = result.replace(/\n/g, "");
-      result = result.replace(/>\s+</g, "><");
+      result = result.replace(/\n/g, "").replace(/>\s+</g, "><");
     }
 
     return NextResponse.json({ result: result.trim() });

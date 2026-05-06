@@ -77,10 +77,16 @@ export const Editor = ({ initialContent, documentId }: EditorProps) => {
 
   const editor = useEditor({
     immediatelyRender: false,
-    onCreate({ editor }) { 
+   onCreate({ editor }) { 
       setEditor(editor); 
+      // 🔥 FIX 1: Attach editor to window so VersionHistoryPanel can access it for manual saves
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      window.editorInstance = editor as any; 
     },
-    onDestroy() { setEditor(null); },
+    onDestroy() { 
+        setEditor(null); 
+        window.editorInstance = null;
+    },
     onUpdate({ editor }) { setEditor(editor); },
     onSelectionUpdate({ editor }) { setEditor(editor); },
     onTransaction({ editor }) { setEditor(editor); },
@@ -144,6 +150,17 @@ export const Editor = ({ initialContent, documentId }: EditorProps) => {
               content: JSON.stringify(editor.getJSON()),
               isAuto: true,
             });
+
+            // 🔥 NEW CODE: Send the raw text to Pinecone after saving to Convex
+            const plainText = editor.getText();
+            if (plainText.trim().length > 0) {
+                fetch("/api/embed", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ documentId: documentId, text: plainText })
+                }).catch(err => console.error("Failed to trigger embedding:", err));
+            }
+
             pendingChanges.current = 0;
             lastSaveTime.current = now;
           } catch (error) {

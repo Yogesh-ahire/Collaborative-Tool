@@ -133,6 +133,7 @@ export const VersionHistoryPanel = ({ documentId, onClose }: Props) => {
                   const editor = window.editorInstance;
                   if (!editor) return;
 
+                  // 1. Save the version to Convex (Your existing code)
                   await createVersion({
                     documentId,
                     content: JSON.stringify(editor.getJSON()),
@@ -140,9 +141,19 @@ export const VersionHistoryPanel = ({ documentId, onClose }: Props) => {
                     isAuto: false,
                   });
 
+                  // 🔥 NEW FIX: Send the text to Pinecone Vector DB for RAG
+                  const plainText = editor.getText();
+                  if (plainText.trim().length > 0) {
+                      fetch("/api/embed", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ documentId: documentId, text: plainText })
+                      }).catch(err => console.error("Failed to trigger embedding:", err));
+                  }
+
                   setVersionName("");
                   window.dispatchEvent(new Event("manual-save-triggered"));
-                  toast.success("Version saved");
+                  toast.success("Version saved & AI updated!");
                 }}
                 className="w-full"
               >
