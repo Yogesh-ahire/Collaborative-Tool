@@ -106,7 +106,7 @@ export const DocumentInput = ({ title, id }: DocumentInputProps) => {
             {showLoader && <LoaderIcon className="size-4 animate-spin text-muted-foreground" />}
             {openVersion && (
                 <VersionHistoryPanel
-                    documentId={id}
+                    documentId= { id }
                     onClose={() => setOpenVersion(false)}
                 />
             )}

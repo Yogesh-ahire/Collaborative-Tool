@@ -227,7 +227,7 @@ export const Editor = ({ initialContent, documentId }: EditorProps) => {
       editor.off("update", handleUpdate);
       if (debounceTimer.current) clearTimeout(debounceTimer.current);
     };
-  }, [editor, documentId, currentUser]);
+  }, [editor, documentId, currentUser, createVersion]);
 
   const handleAiAction = async (action: "grammar" | "tone" | "translate", modifier?: string) => {
     if (!editor) return;

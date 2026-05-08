@@ -21,19 +21,26 @@ import Link from "@tiptap/extension-link";
 import { FontSizeExtension } from "@/extensions/font-size";
 import { LineHeightExtension } from "@/extensions/line-height";
 import { useEffect } from "react";
-import { LoaderIcon } from "lucide-react";
+import { LoaderIcon, XIcon } from "lucide-react";
 import { LEFT_MARGIN_DEFAULT, RIGHT_MARGIN_DEFAULT } from "@/constants/margins";
-
+import { Id } from "../../convex/_generated/dataModel";
+// 🔥 FIX: Interface now accepts BOTH sets of props safely
 interface Props {
-  token: string;
+  token?: string;
+  documentId?: Id<"documents">;
+  onClose?: () => void;
 }
 
-export const ReadOnlyDocument = ({ token }: Props) => {
-  const document = useQuery(api.documents.getByShareToken, { token });
+export const VersionHistoryPanel = ({ token, documentId, onClose }: Props) => {
+  // We use "skip" to avoid calling the wrong query and breaking hook rules
+  const docByToken = useQuery(api.documents.getByShareToken, token ? { token } : "skip");
+  const docById = useQuery(api.documents.getById, documentId ? { id: documentId } : "skip");
+  
+  const document = token ? docByToken : docById;
 
   const previewEditor = useEditor({
     editable: false,
-    immediatelyRender: false, // Prevents Next.js SSR from stripping complex nodes like images
+    immediatelyRender: false,
     editorProps: {
       attributes: {
         class: "focus:outline-none w-full h-full",
@@ -70,7 +77,8 @@ export const ReadOnlyDocument = ({ token }: Props) => {
 
   if (document === undefined) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#FAFBFD]">
+      // If it's an overlay, it needs absolute/fixed positioning and z-index
+      <div className={`flex min-h-screen items-center justify-center bg-[#FAFBFD] ${onClose ? 'fixed inset-0 z-50' : ''}`}>
         <LoaderIcon className="size-6 animate-spin text-muted-foreground" />
       </div>
     );
@@ -78,18 +86,34 @@ export const ReadOnlyDocument = ({ token }: Props) => {
 
   if (document === null) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#FAFBFD]">
+      <div className={`flex min-h-screen items-center justify-center bg-[#FAFBFD] ${onClose ? 'fixed inset-0 z-50' : ''}`}>
         <p className="text-muted-foreground">Document not found or private.</p>
+        {onClose && (
+          <button onClick={onClose} className="absolute top-4 right-4 p-2 bg-slate-200 hover:bg-slate-300 rounded-full">
+             <XIcon className="size-4" />
+          </button>
+        )}
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#FAFBFD] pt-10 pb-10">
+    // 🔥 FIX: Converts to a full-screen modal overlay ONLY if `onClose` is passed from the Editor
+    <div className={`min-h-screen bg-[#FAFBFD] pt-10 pb-10 ${onClose ? 'fixed inset-0 z-[99] overflow-y-auto' : ''}`}>
+      
+      {/* Renders the close button specifically for the Editor UI */}
+      {onClose && (
+        <button 
+          onClick={onClose} 
+          className="fixed top-6 right-6 z-[100] p-2.5 bg-slate-200 text-slate-700 hover:bg-slate-300 rounded-full transition shadow-sm"
+        >
+          <XIcon className="size-5" />
+        </button>
+      )}
+
       <div className="flex justify-center">
-        {/* Added 'tiptap' class below to enforce Table and Image CSS rules */}
         <div 
-          className="bg-white border border-[#C7C7C7] flex flex-col min-h-[1054px] w-[816px] pt-10 pb-10 shadow-sm tiptap"
+          className="bg-white border border-[#C7C7C7] flex flex-col min-h-[1054px] w-[816px] pt-10 pb-10 shadow-sm tiptap relative"
           style={{ paddingLeft: LEFT_MARGIN_DEFAULT, paddingRight: RIGHT_MARGIN_DEFAULT }}
         >
           <EditorContent editor={previewEditor} />
