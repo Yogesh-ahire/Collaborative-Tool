@@ -111,7 +111,12 @@ export default function AIChatPanel({ onClose }: Props) {
 
     const insert = () => {
         if (!editor || !lastAI) return;
-        editor.chain().focus().insertContent(lastAI).run();
+        
+        // Sanitize the HTML: Replace newlines with space, and remove spaces between tags
+        // This prevents Tiptap from rendering structural whitespace as empty bullet points or paragraphs.
+        const cleanHTML = lastAI.replace(/\n/g, " ").replace(/>\s+</g, "><").trim();
+        
+        editor.chain().focus().insertContent(cleanHTML).run();
         setInserted(true);
         setTimeout(() => setInserted(false), 2000);
     };

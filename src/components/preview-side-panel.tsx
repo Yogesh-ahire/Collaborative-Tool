@@ -3,9 +3,10 @@
 import { useState, useEffect, useMemo } from "react";
 import { XIcon, FileTextIcon, PieChartIcon, ActivityIcon, HistoryIcon, UserCircle, SearchCode, HashIcon } from "lucide-react";
 import { extractRawCRDTData } from "@/lib/yjs-extractor";
-import { useOthers, useSelf, useStorage } from "@liveblocks/react/suspense"; 
+import { useStorage } from "@liveblocks/react/suspense"; 
 import { LEFT_MARGIN_DEFAULT, RIGHT_MARGIN_DEFAULT } from "@/constants/margins"; 
 import { getUsers } from "@/app/documents/[documentId]/actions"; 
+import { useSelf } from "@liveblocks/react/suspense";
 
 interface PreviewSidePanelProps {
   onClose: () => void;
@@ -34,8 +35,6 @@ export const PreviewSidePanel = ({ onClose, editor }: PreviewSidePanelProps) => 
 
   const leftMargin = useStorage((root) => root.leftMargin) ?? LEFT_MARGIN_DEFAULT;
   const rightMargin = useStorage((root) => root.rightMargin) ?? RIGHT_MARGIN_DEFAULT;
-
-  const others = useOthers();
   const currentUser = useSelf();
 
   const colors = [
@@ -69,66 +68,46 @@ export const PreviewSidePanel = ({ onClose, editor }: PreviewSidePanelProps) => 
 
   useEffect(() => {
     if (activeTab === "analytics" && editor) {
-      const rawYDoc = editor.storage?.liveblocks?.document || editor.storage?.yjs?.yDoc || editor.storage?.collaborative?.doc;
-      
-      if (rawYDoc) {
-          const identityMap = rawYDoc.getMap('user_identities');
-          
-          const activeClientId = currentUser?.connectionId || rawYDoc.clientID;
-          if (currentUser && activeClientId) {
-              identityMap.set(activeClientId.toString(), {
-                id: currentUser.id, 
-                name: resolveDisplayName(currentUser.info)
-              });
-          }
-          
-          others.forEach(u => {
-              if (u.connectionId) {
-                  identityMap.set(u.connectionId.toString(), {
-                    id: u.id, 
-                    name: resolveDisplayName(u.info)
-                  });
-              }
-          });
-      }
-
       const data = extractRawCRDTData(editor);
       if (!data) return;
 
-      const getStableClerkUser = (clientIdStr: string) => {
-          if (clerkUsers.length === 0) return null;
-          let hash = 0;
-          for (let i = 0; i < clientIdStr.length; i++) {
-              hash = (hash << 5) - hash + clientIdStr.charCodeAt(i);
-              hash |= 0; 
-          }
-          return clerkUsers[Math.abs(hash) % clerkUsers.length];
-      };
+      // 🔥 FIX: Pull the guaranteed valid YDoc from the extractor
+      const rawYDoc = data.ydoc; 
+      const identityMap = rawYDoc?.getMap('user_identities');
+      const activeClientId = rawYDoc?.clientID?.toString();
 
-      const mapUserId = (uniqueId: string) => {
-          if (uniqueId.startsWith("unknown-")) {
-              const assignedUser = getStableClerkUser(uniqueId);
-              return assignedUser ? assignedUser.id : uniqueId;
+      const mapUserId = (uniqueId: string, rawClientIds: string[]) => {
+          // 1. Pull from the permanently hydrated Yjs map
+          if (identityMap) {
+              for (const clientId of rawClientIds) {
+                  const mapped = identityMap.get(clientId.toString());
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  if (mapped && (mapped as any).id) return (mapped as any).id;
+              }
           }
+
+          // 2. Active Session Fallback
+          if (activeClientId && rawClientIds.includes(activeClientId)) {
+              return currentUser?.id || uniqueId;
+          }
+
           return uniqueId;
       };
 
-      const mapUserName = (uniqueId: string, originalName: string) => {
-          const mappedId = mapUserId(uniqueId);
-          const clerkMatch = clerkUsers.find(u => u.id === mappedId);
-          if (clerkMatch) return clerkMatch.name;
-          
-          if (mappedId === currentUser?.id && currentUser?.info) {
+      const mapUserName = (resolvedId: string, originalName: string) => {
+          if (resolvedId === currentUser?.id && currentUser?.info) {
               return resolveDisplayName(currentUser.info);
           }
+          const clerkMatch = clerkUsers.find(u => u.id === resolvedId);
+          if (clerkMatch) return clerkMatch.name;
           
           return originalName;
       };
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const resolvedNodes = data.rawNodes.map((node: any) => ({
+      const resolvedNodes = data.rawNodes.map((node: any) => ({ 
           ...node,
-          uniqueUserId: mapUserId(node.uniqueUserId)
+          uniqueUserId: mapUserId(node.uniqueUserId, [node.rawClientId])
       }));
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -138,9 +117,11 @@ export const PreviewSidePanel = ({ onClose, editor }: PreviewSidePanelProps) => 
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const added = (info as any).added;
           if (added > 0) {
-              const resolvedId = mapUserId(uniqueId);
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              const resolvedName = mapUserName(uniqueId, (info as any).name);
+              const rawClientIds = (info as any).rawClientIds || [];
+              const resolvedId = mapUserId(uniqueId, rawClientIds);
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const resolvedName = mapUserName(resolvedId, (info as any).name);
 
               if (!consolidatedStats[resolvedId]) {
                   consolidatedStats[resolvedId] = {
@@ -166,7 +147,7 @@ export const PreviewSidePanel = ({ onClose, editor }: PreviewSidePanelProps) => 
       setStats(newStats);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, editor, others, currentUser, clerkUsers]);
+  }, [activeTab, editor, currentUser, clerkUsers]);
 
   const totalAdded = stats.reduce((acc, curr) => acc + curr.added, 0);
 
@@ -208,7 +189,6 @@ export const PreviewSidePanel = ({ onClose, editor }: PreviewSidePanelProps) => 
     return grouped.slice(0, 50); 
   }, [rawCrdtData]);
 
-  // 🔥 CORE FIX: Group by User FIRST to stop logical clocks from interleaving and creating gibberish
   const documentFlowBlocks = useMemo(() => {
     if (!rawCrdtData?.rawNodes) return [];
     const blocks: { id: string, text: string }[] = [];
@@ -217,9 +197,9 @@ export const PreviewSidePanel = ({ onClose, editor }: PreviewSidePanelProps) => 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const sortedNodes = [...rawCrdtData.rawNodes].sort((a: any, b: any) => {
         if (a.uniqueUserId === b.uniqueUserId) {
-            return a.clock - b.clock; // Sort chronologically ONLY within the same user's edits
+            return a.clock - b.clock; 
         }
-        return a.uniqueUserId.localeCompare(b.uniqueUserId); // Group users together
+        return a.uniqueUserId.localeCompare(b.uniqueUserId); 
     });
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

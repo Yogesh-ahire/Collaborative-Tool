@@ -7,6 +7,7 @@ import { TableCell, TableRow } from "@/components/ui/table";
 
 import { DocumentMenu } from "./document-menu";
 import { Doc } from "../../../convex/_generated/dataModel"; 
+import { toast } from "sonner";
 
 interface DocumentRowProps {
     document: Doc<"documents">;
@@ -18,7 +19,12 @@ export const DocumentRow = ({document}:DocumentRowProps) => {
    
     return (
         <TableRow
-            onClick={()=> router.push(`/documents/${document._id}`)}
+            onClick={
+                ()=> {
+                    router.push(`/documents/${document._id}`)
+                    toast.success("Opening Your Document! Please Wait...")
+                }
+        }
             className="cursor-pointer"
         >
             <TableCell className="w-[50px]">

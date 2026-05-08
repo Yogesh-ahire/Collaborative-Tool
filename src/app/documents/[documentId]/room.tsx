@@ -16,6 +16,7 @@ import { LEFT_MARGIN_DEFAULT, RIGHT_MARGIN_DEFAULT } from "@/constants/margins";
 import { useParams } from "next/navigation";
 import { Id } from "../../../../convex/_generated/dataModel";
 
+// The local type lacks 'email', which causes the conflict.
 type User = { id: string; name: string; avatar: string; color: string; };
 
 export function Room({ children }: { children: ReactNode }) {
@@ -37,8 +38,7 @@ export function Room({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         fetchUsers();
-    }, [fetchUsers]
-    );
+    }, [fetchUsers]);
 
     return (
         <LiveblocksProvider
@@ -60,9 +60,19 @@ export function Room({ children }: { children: ReactNode }) {
                 return await response.json();
             }}
             resolveUsers={({ userIds }) => {
-                return userIds.map(
-                    (userId) => users.find((user) => user.id === userId) ?? undefined
-                )
+                return userIds.map((userId) => {
+                    const user = users.find((user) => user.id === userId);
+                    if (!user) return undefined;
+                    
+                    // We explicitly reconstruct the object to satisfy the liveblocks.config.ts contract
+                    return {
+                        name: user.name,
+                        avatar: user.avatar,
+                        color: user.color,
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        email: (user as any).email ?? null, 
+                    };
+                });
             }}
             resolveMentionSuggestions={({ text }) => {
                 let filteredUsers = users;

@@ -22,6 +22,7 @@ import { Underline } from "@tiptap/extension-underline";
 
 import { useLiveblocksExtension } from "@liveblocks/react-tiptap";
 import { useStorage } from "@liveblocks/react";
+import { useSelf } from "@liveblocks/react/suspense";
 
 import { useEditorStore } from "@/store/use-editor-store";
 import { FontSizeExtension } from "@/extensions/font-size";
@@ -55,6 +56,7 @@ export const Editor = ({ initialContent, documentId }: EditorProps) => {
 
   const leftMargin = useStorage((root) => root.leftMargin) ?? LEFT_MARGIN_DEFAULT;
   const rightMargin = useStorage((root) => root.rightMargin) ?? RIGHT_MARGIN_DEFAULT;
+  const currentUser = useSelf();
 
   const parsedContent = useMemo(() => {
     if (!initialContent) return undefined;
@@ -62,7 +64,7 @@ export const Editor = ({ initialContent, documentId }: EditorProps) => {
       try {
         return JSON.parse(initialContent);
       } catch (e) {
-        console.log(e);
+        console.log(e)
         return initialContent; 
       }
     }
@@ -77,15 +79,15 @@ export const Editor = ({ initialContent, documentId }: EditorProps) => {
 
   const editor = useEditor({
     immediatelyRender: false,
-   onCreate({ editor }) { 
+    onCreate({ editor }) { 
       setEditor(editor); 
-      // 🔥 FIX 1: Attach editor to window so VersionHistoryPanel can access it for manual saves
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      window.editorInstance = editor as any; 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (window as any).editorInstance = editor; 
     },
     onDestroy() { 
         setEditor(null); 
-        window.editorInstance = null;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (window as any).editorInstance = null;
     },
     onUpdate({ editor }) { setEditor(editor); },
     onSelectionUpdate({ editor }) { setEditor(editor); },
@@ -129,10 +131,61 @@ export const Editor = ({ initialContent, documentId }: EditorProps) => {
 
   const createVersion = useMutation(api.documents.createVersion);
 
+  // HELPER: Dig deep to find the real YDoc
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const getYDoc = (ed: any) => {
+    if (!ed) return null;
+    const possible = [ed.storage?.liveblocks?.document, ed.storage?.yjs?.yDoc, ed.storage?.collaborative?.doc];
+    for (const p of possible) if (p) return p;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const ext of ed.extensionManager.extensions as any[]) {
+      const doc = ext.storage?.document || ext.storage?.yDoc || ext.storage?.doc || ext.storage?.yjs;
+      if (doc && doc.store) return doc;
+    }
+    return null;
+  };
+
   useEffect(() => {
-    if (!editor) return;
+    if (!editor || !currentUser) return;
 
     const handleUpdate = ({ transaction }: { transaction: Transaction }) => {
+      const rawYDoc = getYDoc(editor);
+      
+      if (rawYDoc) {
+        const currentClientId = rawYDoc.clientID?.toString();
+        if (currentClientId) {
+          const identityMap = rawYDoc.getMap('user_identities');
+          const localKey = 'doczflow_identity_vault';
+          const vault = JSON.parse(localStorage.getItem(localKey) || '{}');
+          let vaultChanged = false;
+
+          // 1. HYDRATION: Sync permanent local storage vault back into the temporary Yjs map
+          for (const [cid, info] of Object.entries(vault)) {
+            if (!identityMap.has(cid)) {
+              identityMap.set(cid, info);
+            }
+          }
+
+          // 2. LOCK: Save the new session ID so it survives page reloads
+          if (!vault[currentClientId]) {
+            let name = currentUser.info?.name || currentUser.info?.email || "Yogesh";
+            if (name.includes('@')) {
+               const prefix = name.split('@')[0];
+               name = prefix.charAt(0).toUpperCase() + prefix.slice(1).toLowerCase(); 
+            }
+            const payload = { id: currentUser.id, name };
+            
+            vault[currentClientId] = payload;
+            identityMap.set(currentClientId, payload);
+            vaultChanged = true;
+          }
+
+          if (vaultChanged) {
+            localStorage.setItem(localKey, JSON.stringify(vault));
+          }
+        }
+      }
+
       if (!transaction.docChanged) return;
       if (transaction.getMeta("liveblocks")) return;
 
@@ -151,7 +204,6 @@ export const Editor = ({ initialContent, documentId }: EditorProps) => {
               isAuto: true,
             });
 
-            // 🔥 NEW CODE: Send the raw text to Pinecone after saving to Convex
             const plainText = editor.getText();
             if (plainText.trim().length > 0) {
                 fetch("/api/embed", {
@@ -175,7 +227,7 @@ export const Editor = ({ initialContent, documentId }: EditorProps) => {
       editor.off("update", handleUpdate);
       if (debounceTimer.current) clearTimeout(debounceTimer.current);
     };
-  }, [editor, documentId]);
+  }, [editor, documentId, currentUser]);
 
   const handleAiAction = async (action: "grammar" | "tone" | "translate", modifier?: string) => {
     if (!editor) return;
@@ -212,12 +264,7 @@ export const Editor = ({ initialContent, documentId }: EditorProps) => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
 
-      setPreviewContent({
-        html: data.result,
-        from,
-        to
-      });
-      
+      setPreviewContent({ html: data.result, from, to });
       toast.success("Preview ready!", { id: toastId });
     } catch (error) {
       console.error(error);
