@@ -1,7 +1,21 @@
 "use client";
 
-import { useQuery } from "convex/react";
+import { useState, useEffect } from "react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
+import { Id, Doc } from "../../convex/_generated/dataModel";
+
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import ImageResize from "tiptap-extension-resize-image";
@@ -11,6 +25,7 @@ import TableHeader from "@tiptap/extension-table-header";
 import TableRow from "@tiptap/extension-table-row";
 import TaskItem from "@tiptap/extension-task-item";
 import TaskList from "@tiptap/extension-task-list";
+
 import TextAlign from "@tiptap/extension-text-align";
 import { Color } from "@tiptap/extension-color";
 import Highlight from "@tiptap/extension-highlight";
@@ -20,40 +35,53 @@ import { Underline } from "@tiptap/extension-underline";
 import Link from "@tiptap/extension-link";
 import { FontSizeExtension } from "@/extensions/font-size";
 import { LineHeightExtension } from "@/extensions/line-height";
-import { useEffect } from "react";
-import { LoaderIcon, XIcon } from "lucide-react";
-import { LEFT_MARGIN_DEFAULT, RIGHT_MARGIN_DEFAULT } from "@/constants/margins";
-import { Id } from "../../convex/_generated/dataModel";
-// 🔥 FIX: Interface now accepts BOTH sets of props safely
-interface Props {
-  token?: string;
-  documentId?: Id<"documents">;
-  onClose?: () => void;
+
+import { Editor } from "@tiptap/core";
+import { toast } from "sonner";
+import { useOthers } from "@liveblocks/react";
+
+declare global {
+  interface Window {
+    editorInstance: Editor | null;
+  }
 }
 
-export const VersionHistoryPanel = ({ token, documentId, onClose }: Props) => {
-  // We use "skip" to avoid calling the wrong query and breaking hook rules
-  const docByToken = useQuery(api.documents.getByShareToken, token ? { token } : "skip");
-  const docById = useQuery(api.documents.getById, documentId ? { id: documentId } : "skip");
+interface Props {
+  documentId: Id<"documents">;
+  onClose: () => void;
+}
+
+export const VersionHistoryPanel = ({ documentId, onClose }: Props) => {
+  const versions = useQuery(api.documents.getVersions, { documentId });
+  const createVersion = useMutation(api.documents.createVersion);
+
+  const [versionName, setVersionName] = useState("");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [selectedVersion, setSelectedVersion] = useState<any | null>(null);
   
-  const document = token ? docByToken : docById;
+  const [activeTab, setActiveTab] = useState<"manual" | "auto">("manual");
+
+  const others = useOthers();
+  const hasOtherUsers = others.length > 0;
 
   const previewEditor = useEditor({
     editable: false,
     immediatelyRender: false,
-    editorProps: {
-      attributes: {
-        class: "focus:outline-none w-full h-full",
-      },
-    },
     extensions: [
       StarterKit,
       ImageResize,
-      Table, TableCell, TableHeader, TableRow,
-      TaskList, TaskItem.configure({ nested: true }),
+      Table,
+      TableCell,
+      TableHeader,
+      TableRow,
+      TaskList,
+      TaskItem.configure({ nested: true }),
       TextAlign.configure({ types: ["heading", "paragraph"] }),
-      Color, Highlight.configure({ multicolor: true }),
-      FontFamily, TextStyle, Underline,
+      Color,
+      Highlight.configure({ multicolor: true }),
+      FontFamily,
+      TextStyle,
+      Underline,
       Link.configure({ openOnClick: false, defaultProtocol: "https" }),
       FontSizeExtension,
       LineHeightExtension.configure({ types: ["heading", "paragraph"], defaultLineHeight: "normal" }),
@@ -62,63 +90,215 @@ export const VersionHistoryPanel = ({ token, documentId, onClose }: Props) => {
   });
 
   useEffect(() => {
-    if (previewEditor && document?.initialContent) {
+    if (previewEditor && selectedVersion?.content) {
       try {
-        const parsedContent = typeof document.initialContent === "string" 
-            ? JSON.parse(document.initialContent) 
-            : document.initialContent;
+        const parsedContent = typeof selectedVersion.content === "string" 
+            ? JSON.parse(selectedVersion.content) 
+            : selectedVersion.content;
             
         previewEditor.commands.setContent(parsedContent);
       } catch (err) {
-        console.error("Failed to parse document content:", err);
+        console.error("Failed to parse version content:", err);
       }
     }
-  }, [document, previewEditor]);
+  }, [selectedVersion, previewEditor]);
 
-  if (document === undefined) {
-    return (
-      // If it's an overlay, it needs absolute/fixed positioning and z-index
-      <div className={`flex min-h-screen items-center justify-center bg-[#FAFBFD] ${onClose ? 'fixed inset-0 z-50' : ''}`}>
-        <LoaderIcon className="size-6 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
+  if (!versions) return null;
 
-  if (document === null) {
-    return (
-      <div className={`flex min-h-screen items-center justify-center bg-[#FAFBFD] ${onClose ? 'fixed inset-0 z-50' : ''}`}>
-        <p className="text-muted-foreground">Document not found or private.</p>
-        {onClose && (
-          <button onClick={onClose} className="absolute top-4 right-4 p-2 bg-slate-200 hover:bg-slate-300 rounded-full">
-             <XIcon className="size-4" />
-          </button>
-        )}
-      </div>
-    );
-  }
+  const manualVersions = versions.filter((v: Doc<"document_versions">) => !v.isAuto);
+  const autoVersions = versions.filter((v: Doc<"document_versions">) => v.isAuto);
+  const displayVersions = activeTab === "manual" ? manualVersions : autoVersions;
 
   return (
-    // 🔥 FIX: Converts to a full-screen modal overlay ONLY if `onClose` is passed from the Editor
-    <div className={`min-h-screen bg-[#FAFBFD] pt-10 pb-10 ${onClose ? 'fixed inset-0 z-[99] overflow-y-auto' : ''}`}>
-      
-      {/* Renders the close button specifically for the Editor UI */}
-      {onClose && (
-        <button 
-          onClick={onClose} 
-          className="fixed top-6 right-6 z-[100] p-2.5 bg-slate-200 text-slate-700 hover:bg-slate-300 rounded-full transition shadow-sm"
-        >
-          <XIcon className="size-5" />
-        </button>
-      )}
+    <>
+      <Dialog open={true} onOpenChange={onClose}>
+        <DialogContent className="max-w-md max-h-[85vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Version History</DialogTitle>
+          </DialogHeader>
 
-      <div className="flex justify-center">
-        <div 
-          className="bg-white border border-[#C7C7C7] flex flex-col min-h-[1054px] w-[816px] pt-10 pb-10 shadow-sm tiptap relative"
-          style={{ paddingLeft: LEFT_MARGIN_DEFAULT, paddingRight: RIGHT_MARGIN_DEFAULT }}
-        >
-          <EditorContent editor={previewEditor} />
-        </div>
-      </div>
-    </div>
+          {activeTab === "manual" && (
+            <div className="space-y-2 mt-2">
+              <Input
+                placeholder="Enter version name..."
+                value={versionName}
+                onChange={(e) => setVersionName(e.target.value)}
+              />
+
+              <Button
+                onClick={async () => {
+                  if (!versionName) return;
+
+                  const editor = window.editorInstance;
+                  if (!editor) {
+                    toast.error("Editor not found");
+                    return;
+                  }
+
+                  await createVersion({
+                    documentId,
+                    content: JSON.stringify(editor.getJSON()),
+                    versionName,
+                    isAuto: false,
+                  });
+
+                  setVersionName("");
+                  window.dispatchEvent(new Event("manual-save-triggered"));
+                  toast.success("Version saved");
+                }}
+                className="w-full"
+              >
+                Save Version
+              </Button>
+            </div>
+          )}
+
+          <div className="flex gap-2 mt-4 bg-gray-100 p-1 rounded-md shrink-0">
+            <button
+              onClick={() => setActiveTab("manual")}
+              className={`flex-1 text-sm py-1.5 rounded-sm font-medium transition-colors ${
+                activeTab === "manual" ? "bg-white shadow-sm text-black" : "text-gray-500 hover:text-black"
+              }`}
+            >
+              Manual Saves ({manualVersions.length})
+            </button>
+            <button
+              onClick={() => setActiveTab("auto")}
+              className={`flex-1 text-sm py-1.5 rounded-sm font-medium transition-colors ${
+                activeTab === "auto" ? "bg-white shadow-sm text-black" : "text-gray-500 hover:text-black"
+              }`}
+            >
+              Auto Saves ({autoVersions.length})
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto space-y-2 mt-2 pr-1">
+            {displayVersions.length === 0 ? (
+              <p className="text-center text-sm text-muted-foreground pt-4">
+                No {activeTab} versions found.
+              </p>
+            ) : (
+              displayVersions.map((v: Doc<"document_versions">) => (
+                <div
+                  key={v._id}
+                  className="border p-3 rounded cursor-pointer hover:bg-gray-50 flex flex-col transition-colors"
+                  onClick={() => setSelectedVersion(v)}
+                >
+                  <div className="flex justify-between items-start">
+                    <p className="font-medium text-sm text-gray-900">
+                      {v.versionName || (v.isAuto ? "Auto Recovery Snapshot" : `Version ${v.versionNumber}`)}
+                    </p>
+                    {v.isAuto && (
+                      <span className="bg-blue-100 text-blue-700 text-[10px] px-2 py-0.5 rounded-full font-semibold">
+                        AUTO
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1.5">
+                    {new Date(v.createdAt).toLocaleString()}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-0.5">by {v.createdBy}</p>
+                </div>
+              ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {selectedVersion && (
+        <Dialog open={true} onOpenChange={() => setSelectedVersion(null)}>
+          <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
+            <DialogHeader>
+              <DialogTitle>
+                {selectedVersion.versionName || (selectedVersion.isAuto ? "Auto Snapshot" : "Untitled Version")}
+              </DialogTitle>
+            </DialogHeader>
+
+            <div className="text-sm text-muted-foreground space-y-1 mb-2 flex flex-wrap gap-4 shrink-0">
+              <p><b>Version:</b> {selectedVersion.versionNumber || "N/A"}</p>
+              <p><b>Created By:</b> {selectedVersion.createdBy}</p>
+              <p>
+                <b>Date:</b>{" "}
+                {new Date(selectedVersion.createdAt).toLocaleString()}
+              </p>
+            </div>
+
+            <div className="border p-4 flex-1 overflow-y-auto bg-gray-50 rounded-md tiptap print:bg-white">
+              {previewEditor && <EditorContent editor={previewEditor} />}
+            </div>
+
+            <DialogFooter className="mt-4 shrink-0">
+              <Button
+                onClick={() => {
+                  const editor = window.editorInstance;
+
+                  if (!editor) {
+                    toast.error("Editor not ready. Try again.");
+                    return;
+                  }
+
+                  if (!selectedVersion?.content) {
+                    toast.error("This version has no content.");
+                    return;
+                  }
+
+                  const rawContent = typeof selectedVersion.content === "string" 
+                      ? JSON.parse(selectedVersion.content) 
+                      : selectedVersion.content;
+
+                  if (hasOtherUsers) {
+                    const confirmUsers = confirm(
+                      "⚠️ Other users are editing this document.\nThis will APPEND content at the End.\nDo you want to continue?"
+                    );
+                    if (!confirmUsers) return;
+                  }
+
+                  const contentToInsert = rawContent.type === "doc" ? rawContent.content : rawContent;
+
+                  editor
+                    .chain()
+                    .focus()
+                    .insertContent([
+                      {
+                        type: "paragraph",
+                        content: [
+                          {
+                            type: "text",
+                            text: `\n----- Restored Version ${selectedVersion.versionNumber ? `(v${selectedVersion.versionNumber})` : ''} -----\n`,
+                          },
+                        ],
+                      },
+                      ...(Array.isArray(contentToInsert) ? contentToInsert : [contentToInsert]),
+                      {
+                        type: "paragraph",
+                        content: [
+                          {
+                            type: "text",
+                            text: `\n----- End Restored Version -----\n`,
+                          },
+                        ],
+                      },
+                    ])
+                    .run();
+
+                  setSelectedVersion(null);
+                  onClose(); // Optional: Close the whole panel after inserting, or remove this line to stay open.
+                  toast.success("Version inserted safely");
+                }}
+              >
+                Insert Version
+              </Button>
+
+              <Button
+                variant="outline"
+                onClick={() => setSelectedVersion(null)}
+              >
+                Cancel
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+    </>
   );
 };
