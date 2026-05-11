@@ -5,11 +5,9 @@ import { SignIn } from "@clerk/nextjs";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
-  Users, FileText,
-  Database, Network, Cpu, ArrowRight, PieChart, 
-  MousePointer2, SearchCode, XIcon, Sparkles,
-  History,
-  Brain
+  Users, FileText, Database, Network, Cpu, ArrowRight, PieChart, 
+  MousePointer2, SearchCode, XIcon, Sparkles, History, Brain,
+  Link, MessageSquare // Added for new features
 } from "lucide-react";
 
 export const IntroPage = () => {
@@ -55,7 +53,7 @@ export const IntroPage = () => {
         </div>
       </nav>
 
-      {/* HERO SECTION - FOCUS: COLLABORATION FIRST */}
+      {/* HERO SECTION - FOCUS: COLLABORATION & RAG AI */}
       <section className="relative w-full min-h-[85vh] flex flex-col lg:flex-row items-center justify-center px-4 sm:px-8 md:px-12 lg:px-20 py-12 overflow-hidden gap-12">
         <div className="absolute inset-0 pointer-events-none">
           <motion.div animate={{ opacity: [0.4, 0.7, 0.4] }} transition={{ duration: 6, repeat: Infinity }} className="absolute top-10 left-10 w-72 h-72 bg-blue-400/20 rounded-full blur-3xl" />
@@ -70,12 +68,12 @@ export const IntroPage = () => {
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-[1.1] tracking-tight">
             Collaborative Editing <br />
             <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              Enhanced by AI.
+              Empowered by AI.
             </span>
           </h1>
 
           <p className="text-base sm:text-lg text-gray-600 dark:text-gray-400 leading-relaxed max-w-xl">
-            DoczFlow combines high-speed multi-user sync with an intelligent AI assistant. Write together, sync instantly, and let AI handle the heavy lifting.
+            DoczFlow combines CRDT-based multi-user sync with a grounded AI assistant. Write together seamlessly, track granular history, and let AI analyze your context.
           </p>
 
           <motion.ul
@@ -88,9 +86,9 @@ export const IntroPage = () => {
             className="space-y-3 text-gray-700 dark:text-gray-300 text-sm sm:text-md text-left mt-2 sm:mt-4 w-full sm:w-auto"
           >
             {[
-              { title: "Live Sync:", text: "Zero-latency multi-user editing." },
-              { title: "Diff Versioning:", text: "Automatic delta-based history tracking." },
-              { title: "AI Assistant:", text: "Grammar, tone, and context generation." },
+              { title: "Live Sync:", text: "Zero-latency cursors, presence & thread comments." },
+              { title: "RAG AI Chat:", text: "Ask questions & summarize based on document context." },
+              { title: "Seamless Sharing:", text: "Instant live read-only links for external guests." },
             ].map((item, index) => (
               <motion.li
                 key={index}
@@ -107,7 +105,6 @@ export const IntroPage = () => {
               </motion.li>
             ))}
           </motion.ul>
-       
 
           <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
             <button onClick={() => setShowSignIn(true)} className="px-8 py-4 bg-blue-600 text-white rounded-full font-bold text-lg shadow-xl hover:bg-blue-700 transition-all flex items-center justify-center gap-2">
@@ -127,7 +124,7 @@ export const IntroPage = () => {
            <div className="space-y-3">
               <div className="h-3 w-3/4 bg-blue-50 rounded" />
               <div className="relative h-10 w-full border-l-4 border-purple-500 bg-purple-50/30 flex items-center px-3">
-                <p className="text-[11px] text-purple-600 font-medium italic"><Sparkles className="size-3 inline mr-1" /> AI is refining this paragraph...</p>
+                <p className="text-[11px] text-purple-600 font-medium italic"><Sparkles className="size-3 inline mr-1" /> AI is fetching context via Vector Search...</p>
               </div>
               <div className="h-3 w-5/6 bg-gray-50 rounded" />
               <div className="flex items-center gap-2 mt-4">
@@ -146,7 +143,7 @@ export const IntroPage = () => {
             The Engine <span className="text-blue-600">Under The Hood</span>
           </h2>
           <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mb-10 sm:mb-16 max-w-2xl mx-auto px-4">
-            DoczFlow isn&apos;t just a text area. It&apos;s a distributed reactive system designed for high-concurrency editing and AI processing.
+            DoczFlow isn&apos;t just a text area. It&apos;s a distributed reactive system designed for high-concurrency editing and AI vector processing.
           </p>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8 relative">
@@ -155,26 +152,26 @@ export const IntroPage = () => {
             <StepCard 
               number="01"
               icon={<Network className="size-6 sm:size-8 text-blue-500" />}
-              title="Client Layer"
-              desc="Tiptap captures structured AST edits locally while Liveblocks instantly syncs cursors and deltas across connected peers via WebSockets."
+              title="CRDT Sync Layer"
+              desc="Tiptap captures structured edits locally while Liveblocks instantly syncs cursors, presence, and deltas across peers."
             />
             <StepCard 
               number="02"
               icon={<Database className="size-6 sm:size-8 text-purple-500" />}
-              title="State & Persistence"
-              desc="Convex DB acts as the reactive single source of truth, managing debounced snapshots and user identity secured by Clerk."
+              title="State & Workspaces"
+              desc="Convex acts as the reactive source of truth, managing debounced snapshots, diffs, and separate organization accounts."
             />
             <StepCard 
               number="03"
               icon={<Cpu className="size-6 sm:size-8 text-indigo-500" />}
-              title="Intelligence Layer"
-              desc="The JSON AST is parsed and fed into LLMs (Groq) for lightning-fast context extraction, grammar correction, and generation."
+              title="RAG AI Pipeline"
+              desc="AST content is vectorized and fed to LLMs for token-optimized contextual Q&A, summarization, and grammar fixes."
             />
           </div>
         </div>
       </section>
 
-       {/* FEATURES SECTION */}
+       {/* FEATURES SECTION - UPDATED WITH FINAL FEATURE LIST */}
       <section id="features" className="px-4 sm:px-6 py-16 sm:py-24 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 scroll-mt-10">
         <div className="max-w-6xl mx-auto text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-10 sm:mb-16 tracking-tight">
@@ -189,28 +186,28 @@ export const IntroPage = () => {
             />
             <FeatureCard
               icon={<Brain className="size-5 sm:size-6" />}
-              title="Agentic AI Layer"
-              desc="Generate, summarize, rewrite, and improve your content strictly within the document's context."
-            />
-            <FeatureCard
-              icon={<FileText className="size-5 sm:size-6" />}
-              title="Structured AST Storage"
-              desc="Underlying architecture runs on ProseMirror JSON trees, not just raw messy HTML strings."
+              title="RAG AI Chat Assistant"
+              desc="Chat with your document. Ask context-aware questions, summarize content, or generate new sections based on data."
             />
             <FeatureCard
               icon={<History className="size-5 sm:size-6" />}
-              title="Smart Versioning"
-              desc="Debounced auto-snapshots and manual commits ensure your history is both clean and complete."
+              title="Advanced Versioning"
+              desc="Never lose work with automatic diff-based history tracking and manual snapshot capabilities."
             />
             <FeatureCard
               icon={<Sparkles className="size-5 sm:size-6" />}
-              title="Inline AI Actions"
-              desc="Select text and instantly trigger AI to fix grammar, change tone, or translate—retaining formatting."
+              title="Inline Editor Actions"
+              desc="Select text and instantly trigger AI to fix grammar, change tone, or translate. Native local image upload included."
             />
             <FeatureCard
-              icon={<FileText className="size-5 sm:size-6" />}
-              title="DOCX Interoperability"
-              desc="Seamlessly import and export traditional Word documents directly into the collaborative stream."
+              icon={<Link className="size-5 sm:size-6" />}
+              title="Live Read-Only Sharing"
+              desc="Share real-time document links securely with external users without requiring them to create a DoczFlow account."
+            />
+            <FeatureCard
+              icon={<MessageSquare className="size-5 sm:size-6" />}
+              title="Workspaces & Threads"
+              desc="Separate personal and organizational accounts. Attach threaded comments directly to specific document sections."
             />
           </div>
         </div>
@@ -234,14 +231,14 @@ export const IntroPage = () => {
                   <div className="shrink-0 bg-purple-50 p-3 rounded-xl text-purple-600"><SearchCode className="size-6" /></div>
                   <div>
                     <p className="font-bold text-gray-800 dark:text-gray-100">CRDT Node Inspection</p>
-                    <p className="text-sm text-gray-500">Inspect the raw binary operation stream. Audit every insertion and deletion with clock-based precision.</p>
+                    <p className="text-sm text-gray-500">Inspect the raw binary operation stream. Audit the 100 most recent operations seamlessly.</p>
                   </div>
                </div>
                <div className="flex gap-4">
                   <div className="shrink-0 bg-orange-50 p-3 rounded-xl text-orange-600"><FileText className="size-6" /></div>
                   <div>
-                    <p className="font-bold text-gray-800 dark:text-gray-100">Paginated Print View</p>
-                    <p className="text-sm text-gray-500">Switch to Content View for a simulated A4 layout. Prepare your document for print with visual page breaks.</p>
+                    <p className="font-bold text-gray-800 dark:text-gray-100">Docx & Print View</p>
+                    <p className="text-sm text-gray-500">Import/Export standard DOCX files. Switch to paginated view to see visual page structures.</p>
                   </div>
                </div>
             </div>
@@ -262,7 +259,6 @@ export const IntroPage = () => {
         </div>
       </section>
 
-
       {/* FOOTER */}
       <footer className="px-4 sm:px-6 py-8 sm:py-10 bg-gray-50 dark:bg-gray-950 text-center text-xs sm:text-sm text-gray-500 dark:text-gray-400 flex flex-col items-center justify-center border-t border-gray-200 dark:border-gray-800">
         <Image
@@ -273,7 +269,7 @@ export const IntroPage = () => {
           className="opacity-50 grayscale hover:grayscale-0 hover:opacity-100 transition duration-300 mb-3"
         />
         <p>© {new Date().getFullYear()} DoczFlow - AI Powered Collaborative Ecosystem.</p>
-        <p className="text-[10px] sm:text-xs mt-1">Built with Next.js, Convex, Tiptap, Groq & Liveblocks</p>
+        <p className="text-[10px] sm:text-xs mt-1">Built with Next.js, Convex, Pinecone, Tiptap, Groq & Liveblocks</p>
       </footer>
 
       {/* SIGN IN MODAL */}
@@ -295,7 +291,6 @@ export const IntroPage = () => {
     </div>
   );
 };
-
 
 const FeatureCard = ({ icon, title, desc }: { icon: React.ReactNode, title: string, desc: string }) => (
   <div className="p-6 sm:p-8 border border-gray-100 dark:border-gray-800 rounded-xl sm:rounded-2xl bg-gray-50/50 dark:bg-gray-800/30 hover:bg-white dark:hover:bg-gray-800 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 group flex flex-col items-start">
