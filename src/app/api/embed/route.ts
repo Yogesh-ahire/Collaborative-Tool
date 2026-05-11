@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { Pinecone } from "@pinecone-database/pinecone";
 import { pipeline } from "@xenova/transformers";
 
-const pc = new Pinecone({ apiKey: process.env.PINECONE_API_KEY || "dummy-key-for-build" });
+const pc = new Pinecone({ apiKey: process.env.PINECONE_API_KEY! });
 const index = pc.index("doczflow");
 
 function chunkText(text: string, chunkSize: number, overlap: number) {
