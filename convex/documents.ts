@@ -347,7 +347,7 @@ export const updateTelemetry = mutation({
     stats: v.any(),
     auditLogs: v.any(),
     documentFlowBlocks: v.any(),
-    rawNodes: v.any(),
+    rawNodes: v.optional(v.any()),
   },
   handler: async (ctx, args) => {
     // Check if telemetry already exists for this document
@@ -369,7 +369,7 @@ export const updateTelemetry = mutation({
         stats: args.stats,
         auditLogs: args.auditLogs,
         documentFlowBlocks: args.documentFlowBlocks,
-        rawNodes: args.rawNodes,
+        rawNodes: args.rawNodes || [],
       });
     }
   },
