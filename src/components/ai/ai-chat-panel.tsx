@@ -152,7 +152,11 @@ export default function AIChatPanel({ onClose }: Props) {
                         </div>
                         <p className="text-sm px-4">
                             Ask me to summarize, find info, or draft new content. <br/><br/>
-                            <strong className="font-medium text-gray-500">Tip:</strong> Highlight text in the document to lock it as the target!
+                            <strong className="font-medium text-gray-500">Tip:</strong> 
+                            <ul>
+                                <li>Highlight text in the document to lock it as the target!</li>
+                                <li>Save Vesion of Document to make DoczFlow AI Up to Date... </li>
+                            </ul>
                         </p>
                     </div>
                 )}

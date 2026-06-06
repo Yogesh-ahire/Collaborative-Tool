@@ -44,7 +44,11 @@ export const Document = ({ preloadedDocument }: DocumentProps) => {
           )}
           {activePanel === "preview" && (
             <div className="w-[450px] border-r h-[calc(100vh-122px)] sticky top-[122px] bg-white shrink-0 shadow-lg z-20">
-              <PreviewSidePanel editor={editor} onClose={() => setActivePanel(null)} />
+              <PreviewSidePanel 
+                editor={editor} 
+                documentId = {document._id}
+                onClose={() => setActivePanel(null)} 
+                />
             </div>
           )}
 

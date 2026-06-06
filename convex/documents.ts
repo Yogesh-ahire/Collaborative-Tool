@@ -338,3 +338,49 @@ export const getByShareToken = query({
     return doc;
   },
 });
+
+// 🔥 ADD THESE TO THE VERY END OF convex/documents.ts
+
+export const updateTelemetry = mutation({
+  args: {
+    documentId: v.id("documents"),
+    stats: v.any(),
+    auditLogs: v.any(),
+    documentFlowBlocks: v.any(),
+    rawNodes: v.any(),
+  },
+  handler: async (ctx, args) => {
+    // Check if telemetry already exists for this document
+    const existing = await ctx.db
+      .query("document_telemetry")
+      .withIndex("by_document_id", (q) => q.eq("documentId", args.documentId))
+      .first();
+
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        stats: args.stats,
+        auditLogs: args.auditLogs,
+        documentFlowBlocks: args.documentFlowBlocks,
+        rawNodes: args.rawNodes,
+      });
+    } else {
+      await ctx.db.insert("document_telemetry", {
+        documentId: args.documentId,
+        stats: args.stats,
+        auditLogs: args.auditLogs,
+        documentFlowBlocks: args.documentFlowBlocks,
+        rawNodes: args.rawNodes,
+      });
+    }
+  },
+});
+
+export const getTelemetry = query({
+  args: { documentId: v.id("documents") },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("document_telemetry")
+      .withIndex("by_document_id", (q) => q.eq("documentId", args.documentId))
+      .first();
+  },
+});

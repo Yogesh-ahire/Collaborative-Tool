@@ -58,7 +58,7 @@ export const VersionHistoryPanel = ({ documentId, onClose }: Props) => {
   const [versionName, setVersionName] = useState("");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [selectedVersion, setSelectedVersion] = useState<any | null>(null);
-  
+
   const [activeTab, setActiveTab] = useState<"manual" | "auto">("manual");
 
   const others = useOthers();
@@ -92,10 +92,10 @@ export const VersionHistoryPanel = ({ documentId, onClose }: Props) => {
   useEffect(() => {
     if (previewEditor && selectedVersion?.content) {
       try {
-        const parsedContent = typeof selectedVersion.content === "string" 
-            ? JSON.parse(selectedVersion.content) 
-            : selectedVersion.content;
-            
+        const parsedContent = typeof selectedVersion.content === "string"
+          ? JSON.parse(selectedVersion.content)
+          : selectedVersion.content;
+
         previewEditor.commands.setContent(parsedContent);
       } catch (err) {
         console.error("Failed to parse version content:", err);
@@ -125,6 +125,7 @@ export const VersionHistoryPanel = ({ documentId, onClose }: Props) => {
                 onChange={(e) => setVersionName(e.target.value)}
               />
 
+
               <Button
                 onClick={async () => {
                   if (!versionName) return;
@@ -135,6 +136,7 @@ export const VersionHistoryPanel = ({ documentId, onClose }: Props) => {
                     return;
                   }
 
+                  // 1. Save to Convex
                   await createVersion({
                     documentId,
                     content: JSON.stringify(editor.getJSON()),
@@ -142,9 +144,19 @@ export const VersionHistoryPanel = ({ documentId, onClose }: Props) => {
                     isAuto: false,
                   });
 
+                  // 🔥 FIX: Trigger Embedding for Manual Save (Same logic as Editor auto-save)
+                  const plainText = editor.getText();
+                  if (plainText.trim().length > 0) {
+                    fetch("/api/embed", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ documentId: documentId, text: plainText })
+                    }).catch(err => console.error("Embedding failed:", err));
+                  }
+
                   setVersionName("");
                   window.dispatchEvent(new Event("manual-save-triggered"));
-                  toast.success("Version saved");
+                  toast.success("Version saved and synced to AI");
                 }}
                 className="w-full"
               >
@@ -156,17 +168,15 @@ export const VersionHistoryPanel = ({ documentId, onClose }: Props) => {
           <div className="flex gap-2 mt-4 bg-gray-100 p-1 rounded-md shrink-0">
             <button
               onClick={() => setActiveTab("manual")}
-              className={`flex-1 text-sm py-1.5 rounded-sm font-medium transition-colors ${
-                activeTab === "manual" ? "bg-white shadow-sm text-black" : "text-gray-500 hover:text-black"
-              }`}
+              className={`flex-1 text-sm py-1.5 rounded-sm font-medium transition-colors ${activeTab === "manual" ? "bg-white shadow-sm text-black" : "text-gray-500 hover:text-black"
+                }`}
             >
               Manual Saves ({manualVersions.length})
             </button>
             <button
               onClick={() => setActiveTab("auto")}
-              className={`flex-1 text-sm py-1.5 rounded-sm font-medium transition-colors ${
-                activeTab === "auto" ? "bg-white shadow-sm text-black" : "text-gray-500 hover:text-black"
-              }`}
+              className={`flex-1 text-sm py-1.5 rounded-sm font-medium transition-colors ${activeTab === "auto" ? "bg-white shadow-sm text-black" : "text-gray-500 hover:text-black"
+                }`}
             >
               Auto Saves ({autoVersions.length})
             </button>
@@ -242,9 +252,9 @@ export const VersionHistoryPanel = ({ documentId, onClose }: Props) => {
                     return;
                   }
 
-                  const rawContent = typeof selectedVersion.content === "string" 
-                      ? JSON.parse(selectedVersion.content) 
-                      : selectedVersion.content;
+                  const rawContent = typeof selectedVersion.content === "string"
+                    ? JSON.parse(selectedVersion.content)
+                    : selectedVersion.content;
 
                   if (hasOtherUsers) {
                     const confirmUsers = confirm(

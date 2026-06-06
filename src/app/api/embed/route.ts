@@ -26,7 +26,14 @@ export async function POST(req: Request) {
         return NextResponse.json({ success: true, message: "No text" });
     }
 
+    // 🔥 1. PURGE ZOMBIE VECTORS FIRST (Clean state for every auto-save)
+    // Yeh ensure karega ki sirf current document content hi AI ke paas jaye
+    await index.deleteMany({
+        filter: { documentId: { "$eq": documentId } }
+    });
+
     const chunks = chunkText(text, 1000, 200); // Thode bade chunks (1000 chars) taaki loops kam hon
+    
     console.log(`DEBUG: Total chunks to process: ${chunks.length}`);
 
     const generateEmbedding = await pipeline("feature-extraction", "Xenova/all-MiniLM-L6-v2");
@@ -40,7 +47,7 @@ export async function POST(req: Request) {
             const embeddingArray = Array.from(output.data) as number[];
 
             vectors.push({
-                id: `${documentId}-${i}-${Date.now()}`, // Added timestamp for uniqueness
+                id: `${documentId}-${i}`, // Added timestamp for uniqueness
                 values: embeddingArray,
                 metadata: { 
                     documentId: documentId, 

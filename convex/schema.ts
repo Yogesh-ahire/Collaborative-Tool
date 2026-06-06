@@ -32,4 +32,13 @@ export default defineSchema({
   .index("by_document_id", ["documentId"])
   .index("by_document_version", ["documentId", "versionNumber"])
   .index("by_document_auto", ["documentId", "isAuto"]), 
+
+  // 🔥 NEW: Telemetry Table to fix Vercel extraction crashes
+  document_telemetry: defineTable({
+    documentId: v.id("documents"),
+    stats: v.any(), 
+    auditLogs: v.any(), 
+    documentFlowBlocks: v.any(), 
+    rawNodes: v.optional(v.any()),
+  }).index("by_document_id", ["documentId"]),
 });
