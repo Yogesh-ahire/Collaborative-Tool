@@ -162,6 +162,7 @@ export const PreviewSidePanel = ({ onClose, editor, documentId }: PreviewSidePan
                       })}
                   </div>
                 </div>
+                
 
                 {/* 4. RAW JSON DUMP */}
                 <div className="bg-slate-900 border border-slate-800 rounded-xl shadow-sm overflow-hidden flex flex-col h-[250px]">

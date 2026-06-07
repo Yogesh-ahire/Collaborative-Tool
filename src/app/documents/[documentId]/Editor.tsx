@@ -61,7 +61,6 @@ export const Editor = ({ initialContent, documentId }: EditorProps) => {
     const rightMargin = useStorage((root) => root.rightMargin) ?? RIGHT_MARGIN_DEFAULT;
     const currentUser = useSelf();
 
-    // 🔥 Safety Ref: Prevents stale closures in the background worker
     const currentUserRef = useRef(currentUser);
     useEffect(() => { currentUserRef.current = currentUser; }, [currentUser]);
 
@@ -122,65 +121,22 @@ export const Editor = ({ initialContent, documentId }: EditorProps) => {
     const lastSaveTime = useRef(Date.now());
     const debounceTimer = useRef<NodeJS.Timeout | null>(null);
     
-    const telemetryDirty = useRef(false); // 🔥 Flag for background worker
+    const telemetryDirty = useRef(false);
 
     const createVersion = useMutation(api.documents.createVersion);
     const updateTelemetry = useMutation(api.documents.updateTelemetry);
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const getYDoc = (ed: any) => {
-        if (!ed) return null;
-        const possible = [ed.storage?.liveblocks?.document, ed.storage?.yjs?.yDoc, ed.storage?.collaborative?.doc];
-        for (const p of possible) if (p) return p;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        for (const ext of ed.extensionManager.extensions as any[]) {
-            const doc = ext.storage?.document || ext.storage?.yDoc || ext.storage?.doc || ext.storage?.yjs;
-            if (doc && doc.store) return doc;
-        }
-        return null;
-    };
 
     // 1. UI RENDER LOOP (Main Handle Update)
     useEffect(() => {
         if (!editor || !currentUser) return;
 
         const handleUpdate = ({ transaction }: { transaction: Transaction }) => {
-            const rawYDoc = getYDoc(editor);
-
-            if (rawYDoc) {
-                const currentClientId = rawYDoc.clientID?.toString();
-                if (currentClientId) {
-                    const identityMap = rawYDoc.getMap('user_identities');
-                    const localKey = 'doczflow_identity_vault';
-                    const vault = JSON.parse(localStorage.getItem(localKey) || '{}');
-                    let vaultChanged = false;
-
-                    for (const [cid, info] of Object.entries(vault)) {
-                        if (!identityMap.has(cid)) identityMap.set(cid, info);
-                    }
-
-                    if (!vault[currentClientId]) {
-                        let name = currentUser.info?.name || currentUser.info?.email || "Yogesh";
-                        if (name.includes('@')) {
-                            const prefix = name.split('@')[0];
-                            name = prefix.charAt(0).toUpperCase() + prefix.slice(1).toLowerCase();
-                        }
-                        const payload = { id: currentUser.id, name };
-                        vault[currentClientId] = payload;
-                        identityMap.set(currentClientId, payload);
-                        vaultChanged = true;
-                    }
-                    if (vaultChanged) localStorage.setItem(localKey, JSON.stringify(vault));
-                }
-            }
-
             if (!transaction.docChanged) return;
             if (transaction.getMeta("liveblocks")) return;
 
-            // 🔥 Activate Telemetry Flag (Will be processed by background worker)
             telemetryDirty.current = true;
-
             pendingChanges.current++;
+            
             if (debounceTimer.current) clearTimeout(debounceTimer.current);
 
             debounceTimer.current = setTimeout(async () => {
@@ -215,7 +171,7 @@ export const Editor = ({ initialContent, documentId }: EditorProps) => {
         };
     }, [editor, documentId, currentUser, createVersion]);
 
-    // 2. BACKGROUND TELEMETRY WORKER (Runs every 5s independently)
+    // 2. BACKGROUND TELEMETRY WORKER
     useEffect(() => {
         if (!editor || !documentId) return;
 
@@ -223,121 +179,50 @@ export const Editor = ({ initialContent, documentId }: EditorProps) => {
             if (!telemetryDirty.current) return;
             
             try {
-                const data = extractRawCRDTData(editor);
-                if (data && data.ydoc) {
-                    telemetryDirty.current = false; // Reset early
+                const data = extractRawCRDTData(editor, currentUserRef.current);
+                
+                if (data && data.isValid) {
+                    telemetryDirty.current = false; 
                     
-                    const rawYDoc = data.ydoc;
-                    const identityMap = rawYDoc.getMap('user_identities');
-                    const activeClientId = rawYDoc.clientID?.toString();
-
-                    const mapUserId = (uniqueId: string, rawClientIds: string[]) => {
-                        if (identityMap) {
-                            for (const clientId of rawClientIds) {
-                                const mapped = identityMap.get(clientId.toString());
-                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                if (mapped && (mapped as any).id) return (mapped as any).id;
-                            }
-                        }
-                        const user = currentUserRef.current;
-                        if (activeClientId && rawClientIds.includes(activeClientId) && user) {
-                            return user.id || uniqueId;
-                        }
-                        return uniqueId;
-                    };
-
-                    const mapUserName = (resolvedId: string, originalName: string) => {
-                        const user = currentUserRef.current;
-                        if (resolvedId === user?.id && user?.info) {
-                            const rawString = user.info.name || user.info.email || "";
-                            if (rawString.includes('@')) {
-                                const prefix = rawString.split('@')[0];
-                                return prefix.charAt(0).toUpperCase() + prefix.slice(1).toLowerCase();
-                            }
-                            return rawString;
-                        }
-                        return originalName;
-                    };
-
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    const resolvedNodes = data.rawNodes.map((node: any) => ({
-                        ...node, uniqueUserId: mapUserId(node.uniqueUserId, [node.rawClientId])
-                    }));
-
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    const consolidatedStats: Record<string, any> = {};
-                    for (const [uniqueId, info] of Object.entries(data.statistics)) {
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        const added = (info as any).added;
-                        if (added > 0) {
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                            const rawClientIds = (info as any).rawClientIds || [];
-                            const resolvedId = mapUserId(uniqueId, rawClientIds);
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                            const resolvedName = mapUserName(resolvedId, (info as any).name);
-                            if (!consolidatedStats[resolvedId]) consolidatedStats[resolvedId] = { id: resolvedId, name: resolvedName, added: 0 };
-                            consolidatedStats[resolvedId].added += added;
-                        }
-                    }
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    const statsArray = Object.values(consolidatedStats).sort((a: any, b: any) => b.added - a.added);
-
-                    const reversed = [...resolvedNodes].reverse();
-                    const groupedLogs = [];
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    let currentGroup: any = null;
-
-                    for (const node of reversed) {
-                        let contentStr = node.content;
-                        if (typeof contentStr !== 'string') contentStr = "";
-                        if (node.isFormattingNode || !contentStr || /^(true|false|normal|left|right|center|justify|paragraph|textAlign|lineHeight|bulletList|orderedList|listItem|hardBreak|\[object Object\])$/i.test(contentStr.trim())) continue;
-
-                        if (!currentGroup || currentGroup.uniqueUserId !== node.uniqueUserId) {
-                            if (currentGroup) groupedLogs.push(currentGroup);
-                            currentGroup = { uniqueUserId: node.uniqueUserId, operations: 1, sample: contentStr.substring(0, 25), clock: node.clock };
-                        } else { currentGroup.operations += 1; }
-                    }
-                    if (currentGroup) groupedLogs.push(currentGroup);
+                    const statsArray = Object.values(data.statistics).sort((a: any, b: any) => b.added - a.added);
 
                     const blocks: { id: string, text: string }[] = [];
                     let currentBlock: { id: string, text: string } | null = null;
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    const sortedNodes = [...resolvedNodes].sort((a: any, b: any) => {
-                        if (a.uniqueUserId === b.uniqueUserId) return a.clock - b.clock;
-                        return a.uniqueUserId.localeCompare(b.uniqueUserId);
-                    });
 
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    sortedNodes.forEach((node: any) => {
+                    data.rawNodes.forEach((node: any) => {
                         if (node.isDeleted || !node.content) return;
                         let charStr = node.content;
-                        if (typeof charStr !== 'string' || charStr === "[object Object]") charStr = "";
-                        else if (node.isFormattingNode || charStr === "paragraph") charStr = "\n\n";
-                        else if (charStr === "hardBreak") charStr = "\n";
-                        else if (/^(true|false|normal|left|right|center|justify|textAlign|lineHeight|bulletList|orderedList|listItem)$/i.test(charStr.trim())) charStr = "";
+                        if (node.isFormattingNode) charStr = "\n\n";
 
-                        if (!charStr) return;
-                        if (currentBlock && currentBlock.id === node.uniqueUserId) currentBlock.text += charStr;
-                        else {
+                        if (currentBlock && currentBlock.id === node.uniqueUserId) {
+                            currentBlock.text += charStr;
+                        } else {
                             if (currentBlock) blocks.push(currentBlock);
                             currentBlock = { id: node.uniqueUserId, text: charStr };
                         }
                     });
                     if (currentBlock) blocks.push(currentBlock);
-                    blocks.forEach(b => { b.text = b.text.replace(/\n{3,}/g, '\n\n').trim(); });
 
-                    // 🔥 JSON.parse eliminates `undefined` values which crash Convex
+                    const mockAuditLog = [{
+                        uniqueUserId: currentUserRef.current?.id || "unknown",
+                        operations: data.rawNodes.length,
+                        sample: "Document state synced",
+                        clock: Date.now()
+                    }];
+
                     await updateTelemetry({
                         documentId,
                         stats: JSON.parse(JSON.stringify(statsArray)),
-                        auditLogs: JSON.parse(JSON.stringify(groupedLogs.slice(0, 100))),
+                        auditLogs: mockAuditLog,
                         documentFlowBlocks: JSON.parse(JSON.stringify(blocks.filter(b => b.text.length > 0))),
-                        rawNodes: JSON.parse(JSON.stringify(resolvedNodes.slice(-50))), // 🔥 Send only 50 to avoid DB size limits
+                        rawNodes: JSON.parse(JSON.stringify(data.rawNodes.slice(-50))), 
                     });
                 }
             } catch (err) {
                 console.error("Telemetry Worker Failed:", err);
-                telemetryDirty.current = true; // Retry next time
+                telemetryDirty.current = true; 
             }
         };
 
