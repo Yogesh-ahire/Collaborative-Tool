@@ -1,61 +1,57 @@
-<h1 align="center">DoczFlow – Real-Time Collaborative Document Editor</h1>
+<h1 align="center">DoczFlow : AI Powered Real-Time Collaborative Editor</h1>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Next.js-Framework-black?logo=next.js"/>
-  <img src="https://img.shields.io/badge/React-Frontend-blue?logo=react"/>
-  <img src="https://img.shields.io/badge/TypeScript-Language-blue?logo=typescript"/>
+  <img src="https://img.shields.io/badge/Next.js-15-black?logo=next.js"/>
+  <img src="https://img.shields.io/badge/React-19-blue?logo=react"/>
+  <img src="https://img.shields.io/badge/TypeScript-Strict-blue?logo=typescript"/>
   <img src="https://img.shields.io/badge/Liveblocks-Realtime-purple"/>
   <img src="https://img.shields.io/badge/Convex-Backend-orange"/>
-  <img src="https://img.shields.io/badge/Clerk-Authentication-green"/>
+  <img src="https://img.shields.io/badge/AI-Groq_Llama3-red"/>
   <img src="https://img.shields.io/badge/Deployment-Vercel-black?logo=vercel"/>
 </p>
 
-DoczFlow is a **real-time collaborative document editing platform** that enables multiple users to create, edit, and collaborate on documents simultaneously.
-
-It provides **live synchronization, shared workspaces, mentions, comments, and organization-based access control**, making it suitable for team collaboration and knowledge management.
-
-The platform demonstrates modern **real-time system design and full-stack development practices** using modern web technologies.
+DoczFlow is a **real-time collaborative document editing platform** that enables multiple users to create, edit, and collaborate on documents simultaneously. It provides live synchronization, AI-powered assistance, and granular document forensics.
 
 ---
 
 # Live Demo
 
-🔗 https://collaborative-tool-lake.vercel.app
+🔗 [https://doczflow.vercel.app](https://doczflow.vercel.app)
 
 ---
 
 # Features
 
-### Real-Time Collaborative Editing
-Multiple users can edit the same document simultaneously with live synchronization.
+### 🧠 AI-Powered Document Assistant
+Integrates a **Retrieval-Augmented Generation (RAG)** pipeline using Groq and Pinecone. Provides context-aware grammar correction, tone adjustment, and document summarization.
 
-### Live Presence Indicators
-Shows active collaborators with real-time cursor updates and presence indicators.
+### 📊 Insights & Forensics
+Includes a dedicated forensics tab for **Document Flow Maps**, **Volume Distribution** charts, and an **Event Audit Trail** to track granular user contributions.
 
-### Mentions and Comments
-Collaborators can mention other users and add comments inside documents.
+### 📝 Rich Text Editing & Collaboration
+*   **Live Synchronization:** Real-time editing powered by Liveblocks & Tiptap.
+*   **Presence & Interaction:** Live cursor tracking, presence indicators, comments, and mentions.
+*   **Version History:** Robust tracking of document versions with manual and auto-save capabilities (Snapshot Based).
 
-### Organization-Based Workspaces
-Documents can be organized and shared within teams or organizations.
-
-### Secure Authentication
-User authentication and identity management handled via Clerk.
-
-### Rich Text Editing
-Modern rich text editing experience powered by TipTap.
+### 🏢 Workspaces & Security
+*   **Organization-Based Access:** Documents can be managed within team workspaces.
+*   **Secure Authentication:** Identity management and RBAC handled by Clerk.
 
 ---
+# System Architecture & Features
 
-# Application Screenshots (Live Demo)
+<p align="center">
+  <img src="docs/images/architecture.png" width="900"/>
+</p>
+
+# Application Screenshots
 
 ### Document Dashboard
-
 <p align="center">
   <img src="docs/images/dashboard.png" width="900"/>
 </p>
 
-### Collaborative Editor
-
+### Collaborative Editor & Forensics
 <p align="center">
   <img src="docs/images/editor.png" width="900"/>
 </p>
@@ -64,94 +60,23 @@ Modern rich text editing experience powered by TipTap.
 
 # Tech Stack
 
-### Frontend
-- Next.js
-- React
-- TypeScript
-- Tailwind CSS
-
-### Editor
-- TipTap (ProseMirror based)
-
-### Real-Time Collaboration
-- Liveblocks
-
-### Backend
-- Convex
-
-### Authentication
-- Clerk
-
-### Deployment
-- Vercel
+* **Frontend:** Next.js, React, TypeScript, Tailwind CSS
+* **Editor:** TipTap (ProseMirror based)
+* **Real-Time & Sync:** Liveblocks
+* **Backend & DB:** Convex
+* **AI & Intelligence:** Groq (Llama-3), Pinecone Vector DB
+* **Authentication:** Clerk
+* **Deployment:** Vercel
 
 ---
 
-# System Architecture
-The following diagram shows the high-level architecture of DoczFlow.
-
-<p align="center">
-  <img src="docs/images/architecture.png" width="900"/>
-</p>
-
----
-
-# Installation & Setup
-
-Clone the repository
-
-```bash
-git clone https://github.com/Yogesh-ahire/Collaborative-Tool.git
-```
-Move to project folder
-```bash
-cd Collaborative-Tool
-```
-Install dependencies
-```bash
-npm install
-```
-Run development server
-```bash
-npm run dev
-```
-Run Convex server
-```bash
-npx convex dev
-```
-
-Open in browser
-
-http://localhost:3000
-
-
-## Environment Variables
-
-Create a `.env.local` file
-```bash
-NEXT_PUBLIC_CONVEX_URL=
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
-CLERK_SECRET_KEY=
-LIVEBLOCKS_SECRET_KEY=
-```
----
-
-# Future Improvements
-
-- Document version history
-- AI-powered document assistant
-- Advanced role-based access control
-
----
-
-# Author
-
-Yogesh Ahire
+# 👨‍💻 Yogesh Ahire
 
 🔗 GitHub: https://github.com/Yogesh-ahire  
 🔗 LinkedIn: https://linkedin.com/in/yogesh23-ahire
 
-
+## 📜 Acknowledgments
+This project was evolved from a foundational collaborative editor architecture referenced from [Antonio's full-stack tutorials](https://youtu.be/gq2bbDmSokU?si=TDb8WNjoj5M_g1SZ) to serve as a specialized, high-performance AI-augmented platform.
 
 ## License
 
