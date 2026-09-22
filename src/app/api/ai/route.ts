@@ -108,7 +108,7 @@ Format all your responses strictly in basic HTML (e.g., <p>, <strong>, <ul>, <li
     const response = await fetch(ENDPOINT, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${process.env.GROQ_API_KEY}` },
-      body: JSON.stringify({ model: "llama-3.1-8b-instant", messages: apiMessages, temperature, max_tokens: 1500 }), 
+      body: JSON.stringify({ model: "openai/gpt-oss-20b", messages: apiMessages, temperature, max_tokens: 1500 }), 
     });
 
     const data = await response.json();
